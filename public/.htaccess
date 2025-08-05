@@ -1,0 +1,14 @@
+RewriteEngine On
+RewriteBase /
+
+# Rediriger la racine vers /home
+RewriteCond %{REQUEST_URI} ^/$
+RewriteRule ^$ /home [R=302,L]
+
+# Si le fichier ou dossier existe, on le sert normalement
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Sinon, on redirige tout vers index.html (pour React Router)
+RewriteRule ^ index.html [L]
