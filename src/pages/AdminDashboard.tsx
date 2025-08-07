@@ -4,6 +4,7 @@ import { apiGetTransactions, apiGetUsers } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, DollarSign, TrendingUp, Clock, Eye, Settings, Shield } from 'lucide-react';
+import { SendNotificationDialog } from '@/components/SendNotificationDialog';
 import { useNavigate } from 'react-router-dom';
 
 export default function AdminDashboard() {
@@ -16,6 +17,7 @@ export default function AdminDashboard() {
     pendingDeposits: 0,
     pendingWithdrawals: 0
   });
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
     loadStats();
@@ -55,6 +57,7 @@ export default function AdminDashboard() {
         pendingDeposits,
         pendingWithdrawals
       });
+      setLastUpdated(new Date());
     } catch (error) {
       console.error('Error loading stats:', error);
     }
@@ -68,6 +71,16 @@ export default function AdminDashboard() {
     <>
       <Navigation userRole="admin" />
       <div className="px-2 sm:px-4 lg:px-6 py-3 sm:py-4 space-y-4 sm:space-y-6 pb-8 sm:pb-12 min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#e0e7ef] to-[#f1f5f9]">
+
+        {/* Header similaire à AgentDashboard */}
+        <div className="mb-2">
+          <h1 className="text-lg sm:text-xl lg:text-2xl font-bold gradient-text">Tableau de Bord Admin</h1>
+          {lastUpdated && (
+            <p className="text-xs text-gray-500 mt-1">
+              Dernière mise à jour: {lastUpdated.toLocaleTimeString('fr-FR')}
+            </p>
+          )}
+        </div>
 
       {/* Statistics Cards - Mobile optimisé */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
@@ -147,7 +160,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions - Mobile optimisé */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
         <Button onClick={() => navigate('/admin/users')} className="h-12 sm:h-16 w-full rounded-xl shadow-md bg-gradient-to-r from-blue-100 to-blue-200 hover:from-blue-200 hover:to-blue-300 transition-all duration-200">
           <div className="text-center w-full">
             <Users className="w-5 h-5 sm:w-7 sm:h-7 mx-auto mb-1 text-blue-700" />
@@ -168,15 +181,37 @@ export default function AdminDashboard() {
             <div className="text-xs sm:text-sm font-semibold text-green-900">Lots</div>
           </div>
         </Button>
-        
+        <Button onClick={() => navigate('/admin/agent-applications')} className="h-12 sm:h-16 w-full rounded-xl shadow-md bg-gradient-to-r from-indigo-100 to-indigo-200 hover:from-indigo-200 hover:to-indigo-300 transition-all duration-200" variant="secondary">
+          <div className="text-center w-full">
+            <Shield className="w-5 h-5 sm:w-7 sm:h-7 mx-auto mb-1 text-indigo-700" />
+            <div className="text-xs sm:text-sm font-semibold text-indigo-900">Demandes agents</div>
+          </div>
+        </Button>
         <Button onClick={() => navigate('/admin/stats')} className="h-12 sm:h-16 w-full rounded-xl shadow-md bg-gradient-to-r from-purple-100 to-purple-200 hover:from-purple-200 hover:to-purple-300 transition-all duration-200" variant="outline">
           <div className="text-center w-full">
             <Eye className="w-5 h-5 sm:w-7 sm:h-7 mx-auto mb-1 text-purple-700" />
             <div className="text-xs sm:text-sm font-semibold text-purple-900">Statistiques</div>
           </div>
         </Button>
+        <NotifyButton />
       </div>
       </div>
+    </>
+  );
+}
+
+// Bouton qui ouvre le dialogue d'envoi de notification
+function NotifyButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button onClick={() => setOpen(true)} className="h-12 sm:h-16 w-full rounded-xl shadow-md bg-gradient-to-r from-pink-100 to-pink-200 hover:from-pink-200 hover:to-pink-300 transition-all duration-200" variant="outline">
+        <div className="text-center w-full">
+          <svg className="w-5 h-5 sm:w-7 sm:h-7 mx-auto mb-1 text-pink-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+          <div className="text-xs sm:text-sm font-semibold text-pink-900">Notifier</div>
+        </div>
+      </Button>
+      <SendNotificationDialog open={open} onOpenChange={setOpen} />
     </>
   );
 }

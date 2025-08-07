@@ -152,7 +152,7 @@ function handlePost() {
     
     // Récupérer la notification créée
     $stmt = $pdo->prepare("
-        SELECT id, userId, title, message, type, category, isRead as read, 
+        SELECT id, userId, title, message, type, category, isRead AS `read`, 
                relatedId, createdAt, readAt 
         FROM notifications 
         WHERE id = ?

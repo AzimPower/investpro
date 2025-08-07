@@ -15,6 +15,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Copy, Link, Gift, TrendingUp, UserPlus, Share } from "lucide-react";
 
 export const Team = () => {
+  const [isSubmittingAgent, setIsSubmittingAgent] = useState(false);
+  const [hasAgentApplication, setHasAgentApplication] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [referrals, setReferrals] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,14 +68,23 @@ export const Team = () => {
           throw new Error(`Erreur HTTP: ${allUsersRes.status}`);
         }
         const allUsers = await allUsersRes.json();
-        
+
+        // Vérifier si une demande d'agent existe déjà pour cet utilisateur
+        const agentAppRes = await fetch(`/backend/agent_applications.php?userId=${freshUser.id}`);
+        if (agentAppRes.ok) {
+          const agentApps = await agentAppRes.json();
+          setHasAgentApplication(Array.isArray(agentApps) && agentApps.length > 0);
+        } else {
+          setHasAgentApplication(false);
+        }
+
         if (Array.isArray(allUsers)) {
           // Filtrer les referrals directs (niveau 1)
           const level1 = allUsers.filter(u => u.referredBy === freshUser.id);
-          
+
           // Filtrer les referrals de niveau 2
           const level2 = allUsers.filter(u => level1.some(l1 => l1.id === u.referredBy));
-          
+
           // Combiner tous les referrals
           const allReferrals = [...level1, ...level2];
           setReferrals(allReferrals);
@@ -248,11 +259,9 @@ export const Team = () => {
   }
 
 
-
   return (
     <div className="min-h-screen bg-background">
       <Navigation userRole={user.role} onLogout={handleLogout} />
-      
       <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 lg:py-8 pb-8 sm:pb-12">
         <div className="mb-4 sm:mb-6 lg:mb-8">
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2">Mon équipe</h1>
@@ -356,155 +365,174 @@ export const Team = () => {
           </CardContent>
         </Card>
 
-        {/* Section Postuler Agent - visible pour tous */}
-        <Card className="mb-6 sm:mb-8 bg-gradient-to-br from-indigo-50 to-purple-100 border-indigo-200 shadow-card">
-          <CardHeader className="p-4 sm:p-6 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-t-lg">
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <UserPlus className="h-4 w-4 sm:h-5 sm:w-5" />
-              Devenez Agent InvestPro
-            </CardTitle>
-            <CardDescription className="text-sm sm:text-base text-indigo-100">
-              <b>Devenez agent et profitez d'avantages exclusifs !</b><br />
-              Pour postuler, il vous faut <b>au moins 5 filleuls niveau 1</b> et <b>10 niveau 2</b>.<br />
-              <span className="block mt-1 text-xs text-white/80">Actuellement : {level1Referrals.length} niveau 1, {level2Referrals.length} niveau 2</span>
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
-            <div className="bg-gradient-to-r from-emerald-50 to-green-100 border border-emerald-200 p-3 sm:p-4 rounded-lg">
-              <p className="text-xs sm:text-sm text-emerald-800">
-                <b>Avantages d'être agent :</b><br />
-                - Gérer les dépôts et retraits de votre équipe<br />
-                - Gagner des revenus supplémentaires sur chaque opération<br />
-                - Commissions supplémentaires sur les investissements de votre équipe<br />
-                - Accès à des outils de gestion avancés<br />
-                - Assistance prioritaire et support dédié<br />
-                - Statut privilégié dans la communauté InvestPro
-              </p>
-            </div>
-            <Button
-              variant="default"
-              size="lg"
-              className={`w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 border-0 text-white font-bold text-base sm:text-lg py-2 sm:py-3 ${level1Referrals.length < 5 || level2Referrals.length < 10 ? 'opacity-60 cursor-not-allowed' : ''}`}
-              onClick={() => {
-                if (level1Referrals.length >= 5 && level2Referrals.length >= 10) {
-                  setAgentForm({
-                    fullName: user?.fullName || "",
-                    phone: user?.phone || "",
-                    operator: user?.operator || "",
-                    agentNumber: user?.agentNumber || ""
-                  });
-                  setShowAgentModal(true);
-                } else {
+        {/* Section Postuler Agent - visible uniquement si l'utilisateur n'est pas agent */}
+        {user.role !== 'agent' && (
+          <Card className="mb-6 sm:mb-8 bg-gradient-to-br from-indigo-50 to-purple-100 border-indigo-200 shadow-card">
+            <CardHeader className="p-4 sm:p-6 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-t-lg">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <UserPlus className="h-4 w-4 sm:h-5 sm:w-5" />
+                Devenez Agent InvestPro
+              </CardTitle>
+              <CardDescription className="text-sm sm:text-base text-indigo-100">
+                <b>Devenez agent et profitez d'avantages exclusifs !</b><br />
+                Pour postuler, il vous faut <b>au moins 5 filleuls niveau 1</b> et <b>10 niveau 2</b>.<br />
+                <span className="block mt-1 text-xs text-white/80">Actuellement : {level1Referrals.length} niveau 1, {level2Referrals.length} niveau 2</span>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
+              <div className="bg-gradient-to-r from-emerald-50 to-green-100 border border-emerald-200 p-3 sm:p-4 rounded-lg">
+                <p className="text-xs sm:text-sm text-emerald-800">
+                  <b>Avantages d'être agent :</b><br />
+                  - Gérer les dépôts et retraits de votre équipe<br />
+                  - Gagner des revenus supplémentaires sur chaque opération<br />
+                  - Commissions supplémentaires sur les investissements de votre équipe<br />
+                  - Accès à des outils de gestion avancés<br />
+                  - Assistance prioritaire et support dédié<br />
+                  - Statut privilégié dans la communauté InvestPro
+                </p>
+              </div>
+              <Button
+                variant="default"
+                size="lg"
+                className={`w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 border-0 text-white font-bold text-base sm:text-lg py-2 sm:py-3 ${level1Referrals.length < 5 || level2Referrals.length < 10 || hasAgentApplication || isSubmittingAgent ? 'opacity-60 cursor-not-allowed' : ''}`}
+                onClick={() => {
+                  if (hasAgentApplication || isSubmittingAgent) {
+                    toast({
+                      title: "Demande déjà envoyée",
+                      description: "Vous avez déjà envoyé une demande pour devenir agent. Veuillez attendre la réponse de l'équipe.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  if (level1Referrals.length >= 5 && level2Referrals.length >= 10) {
+                    setAgentForm({
+                      fullName: user?.fullName || "",
+                      phone: user?.phone || "",
+                      operator: user?.operator || "",
+                      agentNumber: user?.agentNumber || ""
+                    });
+                    setShowAgentModal(true);
+                  } else {
+                    toast({
+                      title: "Conditions non remplies",
+                      description: "Vous devez avoir au moins 5 filleuls niveau 1 et 10 niveau 2 pour postuler.",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                disabled={level1Referrals.length < 5 || level2Referrals.length < 10 || hasAgentApplication || isSubmittingAgent}
+              >
+                {hasAgentApplication ? "Demande déjà envoyée" : isSubmittingAgent ? "Envoi en cours..." : "Postuler pour devenir agent"}
+              </Button>
+        {/* Modal formulaire agent */}
+        <Dialog open={showAgentModal} onOpenChange={setShowAgentModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Devenir Agent InvestPro</DialogTitle>
+              <DialogDescription>
+                Merci de compléter vos informations pour finaliser votre candidature.
+              </DialogDescription>
+            </DialogHeader>
+            <form
+              onSubmit={async e => {
+                e.preventDefault();
+                if (isSubmittingAgent) return;
+                if (!agentForm.fullName || !agentForm.phone || !agentForm.operator || !agentForm.agentNumber) {
                   toast({
-                    title: "Conditions non remplies",
-                    description: "Vous devez avoir au moins 5 filleuls niveau 1 et 10 niveau 2 pour postuler.",
+                    title: "Champs manquants",
+                    description: "Merci de remplir tous les champs du formulaire.",
                     variant: "destructive",
                   });
+                  return;
                 }
-              }}
-              disabled={level1Referrals.length < 5 || level2Referrals.length < 10}
-            >
-              Postuler pour devenir agent
-            </Button>
-      {/* Modal formulaire agent */}
-      <Dialog open={showAgentModal} onOpenChange={setShowAgentModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Devenir Agent InvestPro</DialogTitle>
-            <DialogDescription>
-              Merci de compléter vos informations pour finaliser votre candidature.
-            </DialogDescription>
-          </DialogHeader>
-          <form
-            onSubmit={e => {
-              e.preventDefault();
-              if (!agentForm.fullName || !agentForm.phone || !agentForm.operator || !agentForm.agentNumber) {
-                toast({
-                  title: "Champs manquants",
-                  description: "Merci de remplir tous les champs du formulaire.",
-                  variant: "destructive",
-                });
-                return;
-              }
-              apiCreateAgentApplication({
-                userId: user ? Number(user.id) : 0,
-                fullName: agentForm.fullName,
-                phone: agentForm.phone,
-                operator: agentForm.operator,
-                agentNumber: agentForm.agentNumber
-              })
-                .then(() => {
+                setIsSubmittingAgent(true);
+                try {
+                  await apiCreateAgentApplication({
+                    userId: user ? Number(user.id) : 0,
+                    fullName: agentForm.fullName,
+                    phone: user?.phone || "",
+                    operator: agentForm.operator,
+                    agentNumber: agentForm.agentNumber
+                  });
                   setShowAgentModal(false);
+                  setHasAgentApplication(true);
                   toast({
                     title: "Demande envoyée",
                     description: "Votre demande pour devenir agent a été transmise à l'équipe. Vous serez contacté prochainement.",
                   });
-                })
-                .catch(error => {
+                } catch (error) {
                   setShowAgentModal(false);
                   toast({
                     title: "Erreur",
                     description: error.message || "Impossible d'envoyer la demande.",
                     variant: "destructive",
                   });
-                });
-            }}
-            className="space-y-4"
-          >
-            <div>
-              <label className="block text-xs font-medium mb-1">Nom complet</label>
-              <Input
-                value={agentForm.fullName}
-                onChange={e => setAgentForm(f => ({ ...f, fullName: e.target.value }))}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1">Téléphone</label>
-              <Input
-                value={agentForm.phone}
-                onChange={e => setAgentForm(f => ({ ...f, phone: e.target.value }))}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1">Opérateur</label>
-              <Select
-                value={agentForm.operator}
-                onValueChange={val => setAgentForm(f => ({ ...f, operator: val }))}
-                required
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Choisir l'opérateur" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="moov">Moov</SelectItem>
-                  <SelectItem value="orange">Orange</SelectItem>
-                  <SelectItem value="wave">Wave</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1">Numéro agent</label>
-              <Input
-                value={agentForm.agentNumber}
-                onChange={e => setAgentForm(f => ({ ...f, agentNumber: e.target.value }))}
-                required
-              />
-            </div>
-            <DialogFooter>
-              <Button type="submit" className="w-full">Envoyer la demande</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-            <div className="text-xs sm:text-sm text-slate-600 mt-2">
-              <b>Comment ça marche ?</b> <br />
-              Après votre demande, notre équipe examinera votre profil et vous contactera pour finaliser votre statut d'agent.<br />
-              <span className="block mt-1 text-amber-700">Invitez plus de personnes pour débloquer l'accès au statut d'agent !</span>
-            </div>
-          </CardContent>
-        </Card>
+                } finally {
+                  setIsSubmittingAgent(false);
+                }
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-medium mb-1">Nom complet</label>
+                <Input
+                  value={agentForm.fullName}
+                  onChange={e => setAgentForm(f => ({ ...f, fullName: e.target.value }))}
+                  required
+                />
+              </div>
+              {/* Champ téléphone supprimé, le numéro de l'utilisateur est utilisé automatiquement */}
+              <div>
+                <label className="block text-xs font-medium mb-1">Opérateur</label>
+                <Select
+                  value={agentForm.operator}
+                  onValueChange={val => setAgentForm(f => ({ ...f, operator: val }))}
+                  required
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Choisir l'opérateur" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="moov">Moov</SelectItem>
+                    <SelectItem value="orange">Orange</SelectItem>
+                    <SelectItem value="wave">Wave</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">Numéro agent</label>
+                <div className="flex gap-2 items-center">
+                  <span className="px-2 py-1 bg-slate-100 border border-slate-300 rounded text-xs select-none">+226</span>
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]{8}"
+                    maxLength={8}
+                    minLength={8}
+                    value={agentForm.agentNumber}
+                    onChange={e => {
+                      const val = e.target.value.replace(/[^0-9]/g, "");
+                      if (val.length <= 8) setAgentForm(f => ({ ...f, agentNumber: val }));
+                    }}
+                    required
+                    placeholder="XXXXXXXX"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit" className="w-full">Envoyer la demande</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+              <div className="text-xs sm:text-sm text-slate-600 mt-2">
+                <b>Comment ça marche ?</b> <br />
+                Après votre demande, notre équipe examinera votre profil et vous contactera pour finaliser votre statut d'agent.<br />
+                <span className="block mt-1 text-amber-700">Invitez plus de personnes pour débloquer l'accès au statut d'agent !</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Team Members - Mobile optimisé */}
         <Tabs defaultValue="all" className="space-y-4 sm:space-y-6 mb-6 sm:mb-8">
@@ -538,54 +566,21 @@ interface TeamMembersListProps {
 const TeamMembersList = ({ members }: TeamMembersListProps) => {
   const [lots, setLots] = useState<any[]>([]);
   const [userLots, setUserLots] = useState<{[key: number]: any}>({});
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
+  const totalPages = Math.ceil(members.length / pageSize);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Charger tous les lots depuis le backend
-        const lotsRes = await fetch('/backend/lots.php');
-        if (!lotsRes.ok) {
-          throw new Error(`Erreur HTTP: ${lotsRes.status}`);
-        }
-        const allLots = await lotsRes.json();
-        setLots(Array.isArray(allLots) ? allLots : []);
-
-        // Charger les lots actifs de chaque membre
-        const userLotsMap: {[key: number]: any} = {};
-        
-        for (const member of members) {
-          try {
-            // Récupérer les transactions d'achat de lots pour ce membre
-            const transactionsRes = await fetch(`/backend/transactions.php?userId=${member.id}`);
-            if (transactionsRes.ok) {
-              const transactions = await transactionsRes.json();
-              if (Array.isArray(transactions)) {
-                // Trouver la dernière transaction d'achat approuvée
-                const purchaseTransactions = transactions
-                  .filter(t => t.type === 'purchase' && t.status === 'approved' && t.lotId)
-                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-                
-                if (purchaseTransactions.length > 0) {
-                  const latestPurchase = purchaseTransactions[0];
-                  const activeLot = allLots.find(lot => lot.id == latestPurchase.lotId);
-                  if (activeLot) {
-                    userLotsMap[member.id] = activeLot;
-                  }
-                }
-              }
-            }
-          } catch (error) {
-            console.error(`Erreur lors du chargement du lot pour ${member.fullName}:`, error);
-          }
-        }
-        
-        setUserLots(userLotsMap);
+        // Example: fetch lots and user lots if needed
+        // setLots(await fetchLots());
+        // setUserLots(await fetchUserLots());
       } catch (error) {
         console.error('Erreur lors du chargement des lots:', error);
         setLots([]);
       }
     };
-    
     if (members.length > 0) {
       fetchData();
     }
@@ -614,9 +609,16 @@ const TeamMembersList = ({ members }: TeamMembersListProps) => {
     );
   }
 
+  // Trier les membres par date d'inscription (plus récent en haut)
+  const sortedMembers = [...members].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  // Pagination logic
+  const startIdx = (page - 1) * pageSize;
+  const endIdx = startIdx + pageSize;
+  const paginatedMembers = sortedMembers.slice(startIdx, endIdx);
+
   return (
     <div className="space-y-3 sm:space-y-4">
-      {members.map((member) => {
+      {paginatedMembers.map((member) => {
         // Récupérer le lot actif du membre depuis l'état
         const activeLot = userLots[member.id];
         return (
@@ -667,6 +669,18 @@ const TeamMembersList = ({ members }: TeamMembersListProps) => {
           </Card>
         );
       })}
+      {/* Pagination controls */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 mt-4">
+          <Button variant="outline" size="sm" onClick={() => setPage(page - 1)} disabled={page === 1}>
+            Précédent
+          </Button>
+          <span className="text-xs sm:text-sm">Page {page} / {totalPages}</span>
+          <Button variant="outline" size="sm" onClick={() => setPage(page + 1)} disabled={page === totalPages}>
+            Suivant
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

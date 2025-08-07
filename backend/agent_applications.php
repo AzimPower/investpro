@@ -42,6 +42,33 @@ switch ($method) {
         $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
         echo json_encode($applications);
         break;
+    case 'PATCH':
+        // Mise à jour du statut d'une demande agent
+        if (!isset($_GET['id'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'ID manquant']);
+            exit;
+        }
+        $id = intval($_GET['id']);
+        $data = json_decode(file_get_contents('php://input'), true);
+        if (!isset($data['status'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Statut manquant']);
+            exit;
+        }
+        $status = $data['status'];
+        $reviewedAt = date('Y-m-d H:i:s');
+        $reviewedBy = isset($data['reviewedBy']) ? $data['reviewedBy'] : null;
+        $adminNote = isset($data['adminNote']) ? $data['adminNote'] : null;
+        $stmt = $pdo->prepare('UPDATE agent_applications SET status = ?, reviewedAt = ?, reviewedBy = ?, adminNote = ? WHERE id = ?');
+        $success = $stmt->execute([$status, $reviewedAt, $reviewedBy, $adminNote, $id]);
+        if ($success) {
+            echo json_encode(['success' => true]);
+        } else {
+            http_response_code(500);
+            echo json_encode(['error' => 'Erreur lors de la mise à jour']);
+        }
+        break;
     default:
         http_response_code(405);
         echo json_encode(['error' => 'Méthode non autorisée']);

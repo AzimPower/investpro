@@ -10,8 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Search, Edit, UserCheck, UserX, Shield, DollarSign, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { notificationManager } from '@/lib/notificationManager';
 
 export default function AdminUsers() {
+  const [actionLoading, setActionLoading] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
   const [userEarnings, setUserEarnings] = useState<Record<string, number>>({});
@@ -64,6 +66,8 @@ export default function AdminUsers() {
   };
 
   const updateUserStatus = async (userId: string, status: 'active' | 'inactive' | 'blocked') => {
+    if (actionLoading) return;
+    setActionLoading(true);
     try {
       await apiUpdateUser({ id: userId, accountStatus: status });
       await loadUsers();
@@ -71,6 +75,16 @@ export default function AdminUsers() {
         title: "Statut mis à jour",
         description: `Le statut de l'utilisateur a été modifié.`,
       });
+      // Notification utilisateur
+      const statusText = status === 'active' ? 'activé' : status === 'blocked' ? 'bloqué' : 'désactivé';
+      await notificationManager.createNotification(
+        Number(userId),
+        'Statut du compte',
+        `Votre compte a été ${statusText} par l'administration.`,
+        status === 'active' ? 'success' : status === 'blocked' ? 'error' : 'warning',
+        'system'
+      );
+      setSelectedUser(null);
     } catch (error) {
       toast({
         title: "Erreur",
@@ -78,10 +92,13 @@ export default function AdminUsers() {
         variant: "destructive"
       });
     }
+    setActionLoading(false);
   };
 
   const updateUserBalance = async () => {
+    if (actionLoading) return;
     if (!selectedUser || !balanceUpdate) return;
+    setActionLoading(true);
     try {
       const newBalance = parseFloat(balanceUpdate);
       await apiUpdateUser({ id: selectedUser.id, balance: newBalance });
@@ -92,6 +109,14 @@ export default function AdminUsers() {
         title: "Solde mis à jour",
         description: `Le solde de ${selectedUser.fullName} a été modifié.`,
       });
+      // Notification utilisateur
+      await notificationManager.createNotification(
+        Number(selectedUser.id),
+        'Solde modifié',
+        `Votre solde a été mis à jour par l'administration. Nouveau solde : ${newBalance} FCFA`,
+        'info',
+        'system'
+      );
     } catch (error) {
       toast({
         title: "Erreur",
@@ -99,9 +124,11 @@ export default function AdminUsers() {
         variant: "destructive"
       });
     }
+    setActionLoading(false);
   };
 
   const resetPassword = async (userId: string) => {
+    if (actionLoading) return;
     if (!passwordData.newPassword || !passwordData.confirmPassword) {
       toast({
         title: "Erreur",
@@ -126,6 +153,7 @@ export default function AdminUsers() {
       });
       return;
     }
+    setActionLoading(true);
     try {
       // Mettre à jour le mot de passe via l'API PHP backend
       const res = await fetch('/backend/users.php', {
@@ -148,6 +176,14 @@ export default function AdminUsers() {
           title: "Mot de passe modifié",
           description: "Le mot de passe a été changé avec succès",
         });
+        // Notification utilisateur
+        await notificationManager.createNotification(
+          Number(userId),
+          'Mot de passe modifié',
+          "Votre mot de passe a été modifié par l'administration. Si ce n'est pas vous, contactez le support.",
+          'warning',
+          'system'
+        );
       } else {
         throw new Error(result && result.error ? result.error : "Impossible de changer le mot de passe");
       }
@@ -158,10 +194,13 @@ export default function AdminUsers() {
         variant: "destructive"
       });
     }
+    setActionLoading(false);
   };
 
   // Fonctions pour changer le rôle d'un utilisateur avec confirmation
   const updateUserRole = async (userId: string, role: 'user' | 'agent' | 'admin') => {
+    if (actionLoading) return;
+    setActionLoading(true);
     try {
       await apiUpdateUser({ id: userId, role });
       await loadUsers();
@@ -169,6 +208,15 @@ export default function AdminUsers() {
         title: 'Rôle mis à jour',
         description: `Le rôle de l'utilisateur a été modifié en ${role}.`,
       });
+      // Notification utilisateur
+      await notificationManager.createNotification(
+        Number(userId),
+        'Rôle modifié',
+        `Votre rôle a été changé en ${role} par l'administration.`,
+        'info',
+        'system'
+      );
+      setSelectedUser(null);
     } catch (error) {
       toast({
         title: 'Erreur',
@@ -176,6 +224,7 @@ export default function AdminUsers() {
         variant: 'destructive',
       });
     }
+    setActionLoading(false);
   };
 
   const getStatusBadge = (status: string) => {
@@ -247,7 +296,7 @@ export default function AdminUsers() {
                         {getStatusBadge(user.accountStatus)}
                       </div>
                     </div>
-                    <Dialog>
+                    <Dialog open={selectedUser?.id === user.id} onOpenChange={open => { if (!open) setSelectedUser(null); }}>
                       <DialogTrigger asChild>
                         <Button size="sm" variant="outline" onClick={() => {
                           setSelectedUser(user);
@@ -258,6 +307,9 @@ export default function AdminUsers() {
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-sm mx-2">
+                        {actionLoading && (
+                          <div className="text-center text-indigo-600 text-sm mb-2">Traitement en cours...</div>
+                        )}
                         <DialogHeader>
                           <DialogTitle className="text-base">Modifier {user.fullName}</DialogTitle>
                         </DialogHeader>
@@ -268,6 +320,7 @@ export default function AdminUsers() {
                               variant={user.accountStatus === 'active' ? 'default' : 'outline'}
                               onClick={() => updateUserStatus(user.id, 'active')}
                               className="text-xs"
+                              disabled={actionLoading}
                             >
                               <UserCheck className="w-3 h-3 mr-1" />
                               Activer
@@ -277,6 +330,7 @@ export default function AdminUsers() {
                               variant={user.accountStatus === 'blocked' ? 'destructive' : 'outline'}
                               onClick={() => updateUserStatus(user.id, 'blocked')}
                               className="text-xs"
+                              disabled={actionLoading}
                             >
                               <UserX className="w-3 h-3 mr-1" />
                               Bloquer
@@ -286,12 +340,12 @@ export default function AdminUsers() {
                           {/* Gestion des rôles */}
                           <div className="space-y-2">
                             {user.role !== 'agent' && (
-                              <Button size="sm" variant="secondary" onClick={() => updateUserRole(user.id, 'agent')} className="w-full text-xs">
+                              <Button size="sm" variant="secondary" onClick={() => updateUserRole(user.id, 'agent')} className="w-full text-xs" disabled={actionLoading}>
                                 Promouvoir agent
                               </Button>
                             )}
                             {user.role === 'agent' && (
-                              <Button size="sm" variant="outline" onClick={() => updateUserRole(user.id, 'user')} className="w-full text-xs">
+                              <Button size="sm" variant="outline" onClick={() => updateUserRole(user.id, 'user')} className="w-full text-xs" disabled={actionLoading}>
                                 Retirer agent
                               </Button>
                             )}
@@ -318,6 +372,7 @@ export default function AdminUsers() {
                               variant="outline"
                               size="sm"
                               className="w-full text-xs"
+                              disabled={actionLoading}
                             >
                               <Shield className="w-3 h-3 mr-1" />
                               Changer mot de passe
@@ -334,7 +389,7 @@ export default function AdminUsers() {
                                 type="number"
                                 className="text-sm"
                               />
-                              <Button onClick={updateUserBalance} size="sm">
+                              <Button onClick={updateUserBalance} size="sm" disabled={actionLoading}>
                                 <DollarSign className="w-3 h-3" />
                               </Button>
                             </div>

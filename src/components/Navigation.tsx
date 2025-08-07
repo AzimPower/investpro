@@ -36,7 +36,7 @@ export const Navigation = ({ userRole, onLogout }: NavigationProps) => {
           className="bg-gradient-to-r from-violet-600 to-purple-700 hover:from-violet-700 hover:to-purple-800 text-white font-semibold px-6 py-2 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200 border border-violet-500/20"
         >
           <User className="h-4 w-4 mr-2" />
-          Compte Agent
+          Agent
         </Button>
       )}
       {userRole === 'user' && (
@@ -221,7 +221,7 @@ export const Navigation = ({ userRole, onLogout }: NavigationProps) => {
               className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold px-4 py-2 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200 text-xs border border-blue-500/20"
             >
               <User className="h-3 w-3 mr-1" />
-               Compte Agent
+              Agent
             </Button>
           )}
           <NotificationCenter />

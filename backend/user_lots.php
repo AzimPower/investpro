@@ -77,10 +77,21 @@ switch ($method) {
                 exit;
             }
 
-            // Mettre à jour la date de dernière réclamation
+            // Empêcher la réclamation si déjà faite aujourd'hui
+            if ($userLot['lastEarningDate']) {
+                $lastEarningDate = new DateTime($userLot['lastEarningDate']);
+                $now = new DateTime();
+                if ($lastEarningDate->format('Y-m-d') === $now->format('Y-m-d')) {
+                    echo json_encode(['success' => false, 'error' => 'Vous avez déjà réclamé votre gain aujourd\'hui.']);
+                    exit;
+                }
+            }
+
+            // Fixer la date de réclamation côté serveur (empêche la triche côté client)
+            $nowStr = (new DateTime())->format('Y-m-d H:i:s');
             $stmt = $pdo->prepare('UPDATE user_lots SET lastEarningDate = ? WHERE userId = ? AND lotId = ? AND active = 1');
             $stmt->execute([
-                $data['lastEarningDate'],
+                $nowStr,
                 $userId,
                 $lotId
             ]);

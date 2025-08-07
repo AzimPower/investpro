@@ -4,13 +4,13 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 export default defineConfig(({ mode }) => ({
-  base: "./",
+  base: "/",
   server: {
     host: "::",
     port: 8080,
     proxy: {
       '/backend': {
-        target: 'https://gold-cassowary-963217.hostingersite.com',
+        target: 'https://saddlebrown-hedgehog-226601.hostingersite.com',
         changeOrigin: true,
         secure: true,
         timeout: 10000, // 10 secondes timeout

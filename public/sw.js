@@ -4,10 +4,12 @@ const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/src/main.tsx',
-  '/src/index.css',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
+  // '/src/main.tsx', // n'existe pas dans public/
+  // '/src/index.css', // n'existe pas dans public/
+  // '/icons/icon-192x192.png', // n'existe pas dans public/
+  // '/icons/icon-512x512.png', // n'existe pas dans public/
+  '/icons/icon-192x192.svg',
+  '/icons/icon-512x512.svg',
 ];
 
 // URLs des API à mettre en cache

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Navigation } from '@/components/Navigation';
 import { apiGetTransactions, apiUpdateTransaction, apiGetUserById, apiUpdateUser, apiCreateUserLot, apiGetUsers } from '@/lib/api';
+import { notificationManager } from '@/lib/notificationManager';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +11,21 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { CheckCircle, XCircle, Eye, Clock, CreditCard, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+
+// Helper pour afficher date + heure + secondes
+const formatDateTime = (dateString: string) => {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  return date.toLocaleString('fr-FR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+};
 
 export default function AdminDeposits() {
   const [deposits, setDeposits] = useState<any[]>([]);
@@ -123,7 +139,7 @@ export default function AdminDeposits() {
       
       const depositTransactions = allTransactions
         .filter((t: any) => t && t.type === 'deposit')
-        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
         
       console.log('Filtered deposits:', depositTransactions); // Debug log
       setDeposits(depositTransactions);
@@ -172,6 +188,15 @@ export default function AdminDeposits() {
           }
         }
       }
+
+      // Notifier l'utilisateur du résultat du dépôt
+      await notificationManager.notifyTransaction(
+        Number(transaction.userId),
+        'deposit',
+        Number(transaction.amount),
+        status,
+        reason
+      );
 
       await loadDeposits();
       setSelectedDeposit(null);
@@ -226,7 +251,8 @@ export default function AdminDeposits() {
   };
 
   const pendingDeposits = filteredDeposits.filter(d => d.status === 'pending');
-  const processedDeposits = filteredDeposits.filter(d => d.status !== 'pending');
+  // Pour l'historique, on veut les plus récents en haut (anciens en bas)
+  const processedDeposits = filteredDeposits.filter(d => d.status !== 'pending').slice().reverse();
   
   // Pagination pour les deux sections
   const paginatedPending = pendingDeposits.slice((pendingPage-1)*pageSize, pendingPage*pageSize);
@@ -290,7 +316,7 @@ export default function AdminDeposits() {
                           {getUserName(deposit.userId)}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {new Date(deposit.createdAt).toLocaleDateString('fr-FR')}
+                          {formatDateTime(deposit.createdAt)}
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1">
@@ -394,46 +420,7 @@ export default function AdminDeposits() {
                 ))}
               </div>
               
-              {/* Pagination mobile pour les dépôts en attente */}
-              <div className="block lg:hidden">
-                {totalPendingPages > 1 && (
-                  <div className="flex justify-center items-center gap-2 mt-4 pt-4 border-t">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPendingPage(Math.max(1, pendingPage - 1))}
-                      disabled={pendingPage === 1}
-                      className="text-xs"
-                    >
-                      <ChevronLeft className="w-3 h-3" />
-                    </Button>
-                    
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: totalPendingPages }, (_, i) => i + 1).map((page) => (
-                        <Button
-                          key={page}
-                          variant={page === pendingPage ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setPendingPage(page)}
-                          className="text-xs min-w-8 h-8"
-                        >
-                          {page}
-                        </Button>
-                      ))}
-                    </div>
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPendingPage(Math.min(totalPendingPages, pendingPage + 1))}
-                      disabled={pendingPage === totalPendingPages}
-                      className="text-xs"
-                    >
-                      <ChevronRight className="w-3 h-3" />
-                    </Button>
-                  </div>
-                )}
-              </div>
+              {/* Pagination mobile pour les dépôts en attente (déjà incluse dans le bloc mobile ci-dessus, donc supprimée ici) */}
               
               {/* Desktop table */}
               <div className="hidden lg:block">
@@ -453,7 +440,7 @@ export default function AdminDeposits() {
                     {paginatedPending.map((deposit) => (
                       <TableRow key={deposit.id}>
                         <TableCell>
-                          {new Date(deposit.createdAt).toLocaleDateString('fr-FR')}
+                          {formatDateTime(deposit.createdAt)}
                         </TableCell>
                         <TableCell>{getUserName(deposit.userId)}</TableCell>
                         <TableCell className="font-medium">{formatAmount(deposit.amount)}</TableCell>
@@ -626,7 +613,7 @@ export default function AdminDeposits() {
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div>
                         <span className="text-muted-foreground">Traité le: </span>
-                        <span>{deposit.processedAt ? new Date(deposit.processedAt).toLocaleDateString('fr-FR') : '-'}</span>
+                        <span>{deposit.processedAt ? formatDateTime(deposit.processedAt) : '-'}</span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Par: </span>
@@ -637,46 +624,7 @@ export default function AdminDeposits() {
                 ))}
               </div>
               
-              {/* Pagination mobile pour les dépôts traités */}
-              <div className="block lg:hidden">
-                {totalProcessedPages > 1 && (
-                  <div className="flex justify-center items-center gap-2 mt-4 pt-4 border-t">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setProcessedPage(Math.max(1, processedPage - 1))}
-                      disabled={processedPage === 1}
-                      className="text-xs"
-                    >
-                      <ChevronLeft className="w-3 h-3" />
-                    </Button>
-                    
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: totalProcessedPages }, (_, i) => i + 1).map((page) => (
-                        <Button
-                          key={page}
-                          variant={page === processedPage ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setProcessedPage(page)}
-                          className="text-xs min-w-8 h-8"
-                        >
-                          {page}
-                        </Button>
-                      ))}
-                    </div>
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setProcessedPage(Math.min(totalProcessedPages, processedPage + 1))}
-                      disabled={processedPage === totalProcessedPages}
-                      className="text-xs"
-                    >
-                      <ChevronRight className="w-3 h-3" />
-                    </Button>
-                  </div>
-                )}
-              </div>
+              {/* Pagination mobile pour les dépôts traités (déjà incluse dans le bloc mobile ci-dessus, donc supprimée ici) */}
               
               {/* Desktop table */}
               <div className="hidden lg:block">
@@ -695,13 +643,13 @@ export default function AdminDeposits() {
                     {paginatedProcessed.map((deposit) => (
                       <TableRow key={deposit.id}>
                         <TableCell>
-                          {new Date(deposit.createdAt).toLocaleDateString('fr-FR')}
+                          {formatDateTime(deposit.createdAt)}
                         </TableCell>
                         <TableCell>{getUserName(deposit.userId)}</TableCell>
                         <TableCell className="font-medium">{formatAmount(deposit.amount)}</TableCell>
                         <TableCell>{getStatusBadge(deposit.status)}</TableCell>
                         <TableCell>
-                          {deposit.processedAt ? new Date(deposit.processedAt).toLocaleDateString('fr-FR') : '-'}
+                          {deposit.processedAt ? formatDateTime(deposit.processedAt) : '-'}
                         </TableCell>
                         <TableCell>{deposit.processedBy || '-'}</TableCell>
                       </TableRow>

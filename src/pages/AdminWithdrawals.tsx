@@ -1,4 +1,18 @@
 import { useEffect, useState } from 'react';
+// Helper pour afficher date + heure + secondes
+const formatDateTime = (dateString: string) => {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  return date.toLocaleString('fr-FR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+};
 import { Navigation } from '@/components/Navigation';
 import { apiGetTransactions, apiUpdateTransaction, apiGetUserById, apiUpdateUser, apiGetUsers } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +24,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { CheckCircle, XCircle, Eye, Clock, CreditCard, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useNotificationManager } from '@/lib/notificationManager';
 
 // Type pour les transactions
 interface Transaction {
@@ -42,6 +57,7 @@ export default function AdminWithdrawals() {
   const [isLoading, setIsLoading] = useState(true);
   const pageSize = 5;
   const { toast } = useToast();
+  const notifyManager = useNotificationManager();
 
   useEffect(() => {
     // Vider le cache localStorage pour forcer l'utilisation de MySQL
@@ -180,6 +196,13 @@ export default function AdminWithdrawals() {
         }
       }
 
+      // Enregistrer une notification pour l'utilisateur
+      await notifyManager.transaction.withdrawal(
+        Number(transaction.userId),
+        Number(transaction.amount),
+        status
+      );
+
       await loadWithdrawals();
       setSelectedWithdrawal(null);
       setRejectReason('');
@@ -232,8 +255,13 @@ export default function AdminWithdrawals() {
     </Badge>;
   };
 
+  // Pour les retraits en attente, on veut les plus anciens en haut (ordre chronologique)
   const pendingWithdrawals = filteredWithdrawals.filter(w => w.status === 'pending');
-  const processedWithdrawals = filteredWithdrawals.filter(w => w.status !== 'pending');
+  pendingWithdrawals.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  // Pour l'historique, on veut les plus récents en haut (nouveaux en haut)
+  const processedWithdrawals = filteredWithdrawals
+    .filter(w => w.status !== 'pending')
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   
   // Pagination pour les deux sections
   const paginatedPending = pendingWithdrawals.slice((pendingPage-1)*pageSize, pendingPage*pageSize);
@@ -297,7 +325,7 @@ export default function AdminWithdrawals() {
                           {getUserName(withdrawal.userId)}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {new Date(withdrawal.createdAt).toLocaleDateString('fr-FR')}
+                          {formatDateTime(withdrawal.createdAt)}
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1">
@@ -334,7 +362,7 @@ export default function AdminWithdrawals() {
                                 </div>
                                 <div>
                                   <label className="text-xs font-medium">Date</label>
-                                  <p className="text-sm">{new Date(withdrawal.createdAt).toLocaleString('fr-FR')}</p>
+                                  <p className="text-sm">{formatDateTime(withdrawal.createdAt)}</p>
                                 </div>
                               </div>
                               
@@ -396,46 +424,7 @@ export default function AdminWithdrawals() {
                 ))}
               </div>
               
-              {/* Pagination mobile pour les retraits en attente */}
-              <div className="block lg:hidden">
-                {totalPendingPages > 1 && (
-                  <div className="flex justify-center items-center gap-2 mt-4 pt-4 border-t">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPendingPage(Math.max(1, pendingPage - 1))}
-                      disabled={pendingPage === 1}
-                      className="text-xs"
-                    >
-                      <ChevronLeft className="w-3 h-3" />
-                    </Button>
-                    
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: totalPendingPages }, (_, i) => i + 1).map((page) => (
-                        <Button
-                          key={page}
-                          variant={page === pendingPage ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setPendingPage(page)}
-                          className="text-xs min-w-8 h-8"
-                        >
-                          {page}
-                        </Button>
-                      ))}
-                    </div>
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPendingPage(Math.min(totalPendingPages, pendingPage + 1))}
-                      disabled={pendingPage === totalPendingPages}
-                      className="text-xs"
-                    >
-                      <ChevronRight className="w-3 h-3" />
-                    </Button>
-                  </div>
-                )}
-              </div>
+              {/* Pagination mobile pour les retraits en attente (déjà incluse dans le bloc mobile ci-dessus, donc supprimée ici) */}
               
               {/* Desktop table */}
               <div className="hidden lg:block">
@@ -454,7 +443,7 @@ export default function AdminWithdrawals() {
                     {paginatedPending.map((withdrawal) => (
                     <TableRow key={withdrawal.id}>
                       <TableCell>
-                        {new Date(withdrawal.createdAt).toLocaleDateString('fr-FR')}
+                        {formatDateTime(withdrawal.createdAt)}
                       </TableCell>
                       <TableCell>{getUserName(withdrawal.userId)}</TableCell>
                       <TableCell className="font-medium">{formatAmount(withdrawal.amount)}</TableCell>
@@ -492,7 +481,7 @@ export default function AdminWithdrawals() {
                                   </div>
                                   <div>
                                     <label className="text-sm font-medium">Date de demande</label>
-                                    <p>{new Date(withdrawal.createdAt).toLocaleString('fr-FR')}</p>
+                                    <p>{formatDateTime(withdrawal.createdAt)}</p>
                                   </div>
                                 </div>
                                 
@@ -588,7 +577,7 @@ export default function AdminWithdrawals() {
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div>
                         <span className="text-muted-foreground">Traité le: </span>
-                        <span>{withdrawal.processedAt ? new Date(withdrawal.processedAt).toLocaleDateString('fr-FR') : '-'}</span>
+                        <span>{withdrawal.processedAt ? formatDateTime(withdrawal.processedAt) : '-'}</span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">Par: </span>
@@ -606,46 +595,7 @@ export default function AdminWithdrawals() {
                 ))}
               </div>
               
-              {/* Pagination mobile pour les retraits traités */}
-              <div className="block lg:hidden">
-                {totalProcessedPages > 1 && (
-                  <div className="flex justify-center items-center gap-2 mt-4 pt-4 border-t">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setProcessedPage(Math.max(1, processedPage - 1))}
-                      disabled={processedPage === 1}
-                      className="text-xs"
-                    >
-                      <ChevronLeft className="w-3 h-3" />
-                    </Button>
-                    
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: totalProcessedPages }, (_, i) => i + 1).map((page) => (
-                        <Button
-                          key={page}
-                          variant={page === processedPage ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setProcessedPage(page)}
-                          className="text-xs min-w-8 h-8"
-                        >
-                          {page}
-                        </Button>
-                      ))}
-                    </div>
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setProcessedPage(Math.min(totalProcessedPages, processedPage + 1))}
-                      disabled={processedPage === totalProcessedPages}
-                      className="text-xs"
-                    >
-                      <ChevronRight className="w-3 h-3" />
-                    </Button>
-                  </div>
-                )}
-              </div>
+              {/* Pagination mobile pour les retraits traités (déjà incluse dans le bloc mobile ci-dessus, donc supprimée ici) */}
               
               {/* Desktop table */}
               <div className="hidden lg:block">
@@ -665,13 +615,13 @@ export default function AdminWithdrawals() {
                     {paginatedProcessed.map((withdrawal) => (
                       <TableRow key={withdrawal.id}>
                         <TableCell>
-                          {new Date(withdrawal.createdAt).toLocaleDateString('fr-FR')}
+                          {formatDateTime(withdrawal.createdAt)}
                         </TableCell>
                         <TableCell>{getUserName(withdrawal.userId)}</TableCell>
                         <TableCell className="font-medium">{formatAmount(withdrawal.amount)}</TableCell>
                         <TableCell>{getStatusBadge(withdrawal.status)}</TableCell>
                         <TableCell>
-                          {withdrawal.processedAt ? new Date(withdrawal.processedAt).toLocaleDateString('fr-FR') : '-'}
+                          {withdrawal.processedAt ? formatDateTime(withdrawal.processedAt) : '-'}
                         </TableCell>
                         <TableCell>{withdrawal.processedBy || '-'}</TableCell>
                         <TableCell className="max-w-xs truncate">

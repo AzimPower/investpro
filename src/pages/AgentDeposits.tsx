@@ -108,8 +108,8 @@ export default function AgentDeposits() {
         userFullName: usersCache[deposit.userId]?.fullName || `Utilisateur ${deposit.userId}`
       }));
       
-      // Trier du plus récent au plus ancien
-      enrichedDeposits.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      // Trier du plus ancien au plus récent
+      enrichedDeposits.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
       
       setDeposits(enrichedDeposits);
     } catch (error) {
@@ -410,7 +410,10 @@ export default function AgentDeposits() {
   console.log('Terme de recherche actuel:', search);
 
   const pendingDeposits = filteredDeposits.filter(d => d.status === 'pending');
-  const processedDeposits = filteredDeposits.filter(d => d.status !== 'pending');
+  // Pour l'historique, on veut les plus récents en haut (nouveaux en haut)
+  const processedDeposits = filteredDeposits
+    .filter(d => d.status !== 'pending')
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   
   // Pagination séparée pour chaque section
   const paginatedPending = pendingDeposits.slice((page-1)*pageSize, page*pageSize);
@@ -432,6 +435,19 @@ export default function AgentDeposits() {
       </>
     );
   }
+
+  // Helper pour afficher la date avec heure et secondes
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('fr-FR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  };
 
   return (
     <>
@@ -517,7 +533,7 @@ export default function AgentDeposits() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="w-3 h-3 text-gray-500" />
-                        <span>{new Date(dep.createdAt).toLocaleDateString('fr-FR')}</span>
+                        <span>{formatDateTime(dep.createdAt)}</span>
                       </div>
                       {dep.lotId && (
                         <div className="flex items-center gap-2">
@@ -650,7 +666,7 @@ export default function AgentDeposits() {
                     ) : (
                       paginatedPending.map((dep) => (
                         <TableRow key={dep.id}>
-                          <TableCell>{new Date(dep.createdAt).toLocaleDateString('fr-FR')}</TableCell>
+                          <TableCell>{formatDateTime(dep.createdAt)}</TableCell>
                           <TableCell className="font-medium">{dep.userFullName}</TableCell>
                           <TableCell className="font-medium">{formatAmount(dep.amount)}</TableCell>
                           <TableCell>{dep.lotId || 'Recharge'}</TableCell>
@@ -824,7 +840,7 @@ export default function AgentDeposits() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="w-3 h-3 text-gray-500" />
-                        <span>{new Date(dep.createdAt).toLocaleDateString('fr-FR')}</span>
+                        <span>{formatDateTime(dep.createdAt)}</span>
                       </div>
                       {dep.lotId && (
                         <div className="flex items-center gap-2">
@@ -906,11 +922,11 @@ export default function AgentDeposits() {
                   ) : (
                     paginatedProcessed.map((dep) => (
                       <TableRow key={dep.id}>
-                        <TableCell>{new Date(dep.createdAt).toLocaleDateString('fr-FR')}</TableCell>
+                          <TableCell>{formatDateTime(dep.createdAt)}</TableCell>
                         <TableCell className="font-medium">{dep.userFullName}</TableCell>
                         <TableCell className="font-medium">{formatAmount(dep.amount)}</TableCell>
                         <TableCell>{getStatusBadge(dep.status)}</TableCell>
-                        <TableCell>{dep.processedAt ? new Date(dep.processedAt).toLocaleDateString('fr-FR') : '-'}</TableCell>
+                        <TableCell>{dep.processedAt ? formatDateTime(dep.processedAt) : '-'}</TableCell>
                         <TableCell>{dep.processedBy ? dep.processedBy.replace('+226', '') : '-'}</TableCell>
                       </TableRow>
                     ))

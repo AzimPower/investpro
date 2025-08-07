@@ -20,6 +20,7 @@ const Team = lazy(() => import("./pages/Team").then(module => ({ default: module
 const Profile = lazy(() => import("./pages/Profile").then(module => ({ default: module.Profile })));
 const Withdraw = lazy(() => import("./pages/Withdraw").then(module => ({ default: module.Withdraw })));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AdminAgentApplications = lazy(() => import("./pages/AdminAgentApplications"));
 const AgentDashboard = lazy(() => import("./pages/AgentDashboard"));
 const AdminUsers = lazy(() => import("./pages/AdminUsers"));
 const AdminAgents = lazy(() => import("./pages/AdminAgents"));
@@ -71,7 +72,7 @@ const App = () => {
           <BrowserRouter>
             <Suspense fallback={<LoadingSpinner />}>
               <Routes>
-              <Route path="/home" element={<Home />} />
+              <Route path="/" element={<Home />} />
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
               <Route path="/dashboard" element={<Dashboard />} />
@@ -93,10 +94,10 @@ const App = () => {
               <Route path="/admin/lots" element={<AdminLots />} />
               <Route path="/admin/stats" element={<AdminStats />} />
               <Route path="/admin/settings" element={<AdminSettings />} />
+              <Route path="/admin/agent-applications" element={<AdminAgentApplications />} />
               {/* Politique d'investissement */}
               <Route path="/politique-investissement" element={<PolitiqueInvestissement />} />
-              {/* Redirection de la racine vers /home */}
-              <Route path="/" element={<Navigate to="/home" replace />} />
+              {/* La racine '/' sert directement de page d'accueil */}
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -230,60 +230,76 @@ export const Dashboard = () => {
   }, [activeUserLot, lastClaimDate]);
 
   // Handle claim daily earning (pour le lot actif) - optimisé avec React Query
-  const handleClaimDaily = useCallback(async () => {
-    if (!user) return;
-    
-    // Vérifier si une réclamation est déjà en cours
-    if (isClaiming || claimDailyEarning.isPending) {
-      toast({
-        title: "Réclamation en cours",
-        description: "Une réclamation est déjà en cours de traitement. Veuillez patienter.",
-        variant: "destructive"
-      });
-      return;
-    }
+  const handleClaimDaily = useCallback(
+    async () => {
+      if (!user) return;
+      
+      // Vérifier si une réclamation est déjà en cours
+      if (isClaiming || claimDailyEarning.isPending) {
+        toast({
+          title: "Réclamation en cours",
+          description: "Une réclamation est déjà en cours de traitement. Veuillez patienter.",
+          variant: "destructive"
+        });
+        return;
+      }
 
-    // Vérifier si l'utilisateur peut réclamer aujourd'hui
-    if (!canClaimToday()) {
-      toast({
-        title: "Réclamation déjà effectuée",
-        description: "Vous avez déjà réclamé votre gain aujourd'hui. Revenez demain !",
-        variant: "destructive"
-      });
-      return;
-    }
+      // Vérifier si l'utilisateur peut réclamer aujourd'hui
+      if (!canClaimToday()) {
+        toast({
+          title: "Réclamation déjà effectuée",
+          description: "Vous avez déjà réclamé votre gain aujourd'hui. Revenez demain !",
+          variant: "destructive"
+        });
+        return;
+      }
 
-    if (!userActiveLot) {
-      toast({
-        title: "Aucun lot actif",
-        description: "Vous devez d'abord acheter un lot pour pouvoir réclamer des gains.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    setIsClaiming(true);
-    
-    try {
-      await claimDailyEarning.mutateAsync({
-        user,
-        currentEarning,
-        userActiveLot,
-        activeUserLot,
-        setLastClaimDate,
-      });
-    } catch (error) {
-      // L'erreur est déjà gérée par le hook
-    } finally {
-      setIsClaiming(false);
-    }
-  }, [user, isClaiming, canClaimToday, userActiveLot, currentEarning, activeUserLot, toast, claimDailyEarning, setLastClaimDate]);  const handleLogout = useCallback(() => {
-    localStorage.removeItem('currentUser');
-    navigate('/');
-  }, [navigate]);
+      if (!userActiveLot) {
+        toast({
+          title: "Aucun lot actif",
+          description: "Vous devez d'abord acheter un lot pour pouvoir réclamer des gains.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      setIsClaiming(true);
 
+      try {
+        await claimDailyEarning.mutateAsync({
+          user,
+          currentEarning,
+          userActiveLot,
+          activeUserLot,
+          setLastClaimDate,
+        });
+      } catch (error) {
+        // Afficher le message d'erreur du backend si présent
+        let backendMsg = (error && typeof error === 'object' && 'response' in error && error.response && error.response.data && error.response.data.error)
+          ? error.response.data.error
+          : (error && typeof error === 'object' && 'message' in error ? error.message : String(error));
+        if (backendMsg && backendMsg.includes('déjà réclamé')) {
+          toast({
+            title: "Réclamation déjà effectuée",
+            description: backendMsg,
+            variant: "destructive"
+          });
+        } else if (backendMsg) {
+          toast({
+            title: "Erreur",
+            description: backendMsg,
+            variant: "destructive"
+          });
+        }
+      } finally {
+        setIsClaiming(false);
+      }
+    },
+    [user, isClaiming, canClaimToday, userActiveLot, currentEarning, activeUserLot, toast, claimDailyEarning, setLastClaimDate]
+  );
+  // Fonction de gestion du dépôt
   const handleDeposit = useCallback(async () => {
-    if (!user || !depositMethod || !depositProof || !depositAmount || isNaN(Number(depositAmount)) || Number(depositAmount) < 1000 || !selectedAgent) {
+    if (!user || !depositMethod || !depositProof || !depositAmount || !selectedAgent || Number(depositAmount) < 1000) {
       toast({
         title: "Erreur",
         description: "Veuillez remplir tous les champs correctement (montant minimum 1000 FCFA)",
@@ -292,21 +308,10 @@ export const Dashboard = () => {
       return;
     }
 
-    // Vérifier que l'agent sélectionné n'est pas l'utilisateur lui-même
-    if (selectedAgent.id === user.id) {
-      toast({
-        title: "Erreur",
-        description: "Vous ne pouvez pas faire une demande de dépôt vers votre propre compte",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Vérifier si une soumission est déjà en cours
     if (isSubmittingDeposit) {
       toast({
-        title: "Soumission en cours",
-        description: "Une demande de dépôt est déjà en cours de traitement. Veuillez patienter.",
+        title: "Envoi en cours",
+        description: "Une demande de dépôt est déjà en cours de traitement.",
         variant: "destructive",
       });
       return;
@@ -541,6 +546,10 @@ export const Dashboard = () => {
   }, []);
 
   if (isLoading) {
+    function handleLogout(): void {
+      localStorage.removeItem('currentUser');
+      window.location.href = '/login';
+    }
     return (
       <div className="min-h-screen bg-background">
         <Navigation userRole="user" onLogout={handleLogout} />
@@ -559,6 +568,10 @@ export const Dashboard = () => {
   const totalGagneCumule = Number(user.totalEarned) || 0;
   logger.log('Debug - totalGagneCumule calculé:', totalGagneCumule, 'depuis user.totalEarned:', user.totalEarned);
 
+  function handleLogout(): void {
+    localStorage.removeItem('currentUser');
+    window.location.href = '/login';
+  }
   return (
     <div className="min-h-screen bg-background">
       <Navigation userRole={user.role} onLogout={handleLogout} />
@@ -606,7 +619,13 @@ export const Dashboard = () => {
                   disabled={!canClaimToday() || isClaiming || !userActiveLot || isLotExpired}
                   onClick={handleClaimDaily}
                 >
-                  {isClaiming ? 'En cours...' : canClaimToday() ? 'Réclamer' : 'Réclamé'}
+                  {isClaiming
+                    ? 'En cours...'
+                    : !canClaimToday()
+                      ? 'Déjà réclamé aujourd\'hui'
+                      : isLotExpired
+                        ? 'Lot expiré'
+                        : 'Réclamer'}
                 </Button>
               )}
             </CardContent>

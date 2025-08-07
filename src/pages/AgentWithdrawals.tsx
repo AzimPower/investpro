@@ -54,6 +54,21 @@ export default function AgentWithdrawals() {
     loadWithdrawals();
   }, []);
 
+  // Helper pour afficher date + heure + secondes
+  const formatDateTime = (dateString: string) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleString('fr-FR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+  };
+
   const loadWithdrawals = async () => {
     try {
       setIsLoading(true);
@@ -103,8 +118,8 @@ export default function AgentWithdrawals() {
         userFullName: usersCache[withdrawal.userId]?.fullName || `Utilisateur ${withdrawal.userId}`
       }));
       
-      // Trier du plus récent au plus ancien
-      enrichedWithdrawals.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      // Trier du plus ancien au plus récent
+      enrichedWithdrawals.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
       
       console.log('Filtered withdrawals (Agent):', enrichedWithdrawals);
       setWithdrawals(enrichedWithdrawals);
@@ -324,7 +339,10 @@ export default function AgentWithdrawals() {
   });
 
   const pendingWithdrawals = filteredWithdrawals.filter(d => d.status === 'pending');
-  const processedWithdrawals = filteredWithdrawals.filter(d => d.status !== 'pending');
+  // Pour l'historique, on veut les plus récents en haut (nouveaux en haut)
+  const processedWithdrawals = filteredWithdrawals
+    .filter(d => d.status !== 'pending')
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   
   // Pagination séparée pour chaque section
   const paginatedPending = pendingWithdrawals.slice((page-1)*pageSize, page*pageSize);
@@ -441,7 +459,7 @@ export default function AgentWithdrawals() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="w-3 h-3 text-gray-500" />
-                        <span>{new Date(wd.createdAt).toLocaleDateString('fr-FR')}</span>
+                        <span>{formatDateTime(wd.createdAt)}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <CreditCard className="w-3 h-3 text-green-600" />
@@ -483,7 +501,7 @@ export default function AgentWithdrawals() {
                                 </div>
                                 <div>
                                   <label className="text-sm font-medium">Date</label>
-                                  <p>{new Date(wd.createdAt).toLocaleDateString('fr-FR')}</p>
+                                  <p>{formatDateTime(wd.createdAt)}</p>
                                 </div>
                                 <div className="col-span-2">
                                   <label className="text-sm font-medium">Montant à recevoir (après 10% de frais)</label>
@@ -542,7 +560,7 @@ export default function AgentWithdrawals() {
                   ) : (
                     paginatedPending.map((wd) => (
                       <TableRow key={wd.id}>
-                        <TableCell>{new Date(wd.createdAt).toLocaleDateString('fr-FR')}</TableCell>
+                        <TableCell>{formatDateTime(wd.createdAt)}</TableCell>
                         <TableCell className="font-medium">{wd.userFullName}</TableCell>
                         <TableCell className="font-medium">{formatAmount(wd.amount)}</TableCell>
                         <TableCell>{wd.paymentMethod || '-'}</TableCell>
@@ -715,12 +733,12 @@ export default function AgentWithdrawals() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="w-3 h-3 text-gray-500" />
-                        <span>{new Date(wd.createdAt).toLocaleDateString('fr-FR')}</span>
+                        <span>{formatDateTime(wd.createdAt)}</span>
                       </div>
                       {wd.processedAt && (
                         <div className="flex items-center gap-2">
                           <CheckCircle className="w-3 h-3 text-blue-500" />
-                          <span className="text-blue-600">Traité le {new Date(wd.processedAt).toLocaleDateString('fr-FR')}</span>
+                          <span className="text-blue-600">Traité le {formatDateTime(wd.processedAt)}</span>
                         </div>
                       )}
                     </div>
@@ -764,11 +782,11 @@ export default function AgentWithdrawals() {
                   ) : (
                     paginatedProcessed.map((wd) => (
                       <TableRow key={wd.id}>
-                        <TableCell>{new Date(wd.createdAt).toLocaleDateString('fr-FR')}</TableCell>
+                        <TableCell>{formatDateTime(wd.createdAt)}</TableCell>
                         <TableCell className="font-medium">{wd.userFullName}</TableCell>
                         <TableCell className="font-medium">{formatAmount(wd.amount)}</TableCell>
                         <TableCell>{getStatusBadge(wd.status)}</TableCell>
-                        <TableCell>{wd.processedAt ? new Date(wd.processedAt).toLocaleDateString('fr-FR') : '-'}</TableCell>
+                        <TableCell>{wd.processedAt ? formatDateTime(wd.processedAt) : '-'}</TableCell>
                         <TableCell>{wd.processedBy ? wd.processedBy.replace('+226', '') : '-'}</TableCell>
                       </TableRow>
                     ))
