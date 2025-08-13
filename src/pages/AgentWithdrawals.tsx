@@ -138,6 +138,11 @@ export default function AgentWithdrawals() {
 
   // Si validé, ne fait rien (déjà débité à la demande). Si rejeté, recrédite le solde utilisateur.
   const approveWithdrawal = async (id: string) => {
+    // Récupérer l'agent connecté depuis le localStorage
+    let currentUser: any = null;
+    try {
+      currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    } catch { currentUser = null; }
     // Vérifier si le retrait est déjà en cours de traitement
     if (processingWithdrawals.has(id)) {
       toast({
@@ -168,7 +173,9 @@ export default function AgentWithdrawals() {
         action: 'update',
         status: 'approved',
         processedAt: new Date().toISOString(),
-        processedBy: 'agent'
+        processedBy: currentUser?.fullName || currentUser?.id || 'agent',
+        agentId: currentUser?.id ? String(currentUser.id) : undefined,
+        agentNumber: currentUser?.agentNumber || undefined
       });
       
       toast({
@@ -205,6 +212,11 @@ export default function AgentWithdrawals() {
   };
 
   const rejectWithdrawal = async (id: string, reason?: string) => {
+    // Récupérer l'agent connecté depuis le localStorage
+    let currentUser: any = null;
+    try {
+      currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    } catch { currentUser = null; }
     // Vérifier si le retrait est déjà en cours de traitement
     if (processingWithdrawals.has(id)) {
       toast({
@@ -235,7 +247,9 @@ export default function AgentWithdrawals() {
         action: 'update',
         status: 'rejected',
         processedAt: new Date().toISOString(),
-        processedBy: 'agent',
+        processedBy: currentUser?.fullName || currentUser?.id || 'agent',
+        agentId: currentUser?.id ? String(currentUser.id) : undefined,
+        agentNumber: currentUser?.agentNumber || undefined,
         reason
       });
       

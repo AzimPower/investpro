@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     proxy: {
       '/backend': {
-        target: 'https://saddlebrown-hedgehog-226601.hostingersite.com',
+        target: 'https://mintcream-cheetah-263111.hostingersite.com',
         changeOrigin: true,
         secure: true,
         timeout: 10000, // 10 secondes timeout

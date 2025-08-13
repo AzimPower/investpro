@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import dayjs from 'dayjs';
 import { Navigation } from '@/components/Navigation';
-import { apiGetUsers, apiGetTransactions, apiUpdateUser, apiRegister } from '@/lib/api';
+import { apiGetUsers, apiGetTransactions, apiUpdateUser, apiRegister, apiGetAgentStats } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,7 +31,7 @@ export default function AdminAgents() {
   const [agents, setAgents] = useState<any[]>([]);
   const [filteredAgents, setFilteredAgents] = useState<any[]>([]);
   const [agentEarnings, setAgentEarnings] = useState<Record<string, number>>({});
-  const [agentStats, setAgentStats] = useState<Record<string, { deposits: number; commissions: number }>>({});
+  const [agentStats, setAgentStats] = useState<Record<string, { deposit: number; withdrawal: number; commission: number }>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAgent, setSelectedAgent] = useState<any | null>(null);
   const [newAgentData, setNewAgentData] = useState({
@@ -70,12 +71,26 @@ export default function AdminAgents() {
     action: () => {},
   });
   const [isLoading, setIsLoading] = useState(false);
+  // Ajout pour la période de stats
+  const [period, setPeriod] = useState<{ start: string; end: string }>(() => {
+    const today = dayjs().format('YYYY-MM-DD');
+    return {
+      start: today,
+      end: today,
+    };
+  });
+  const [isStatsLoading, setIsStatsLoading] = useState(false);
   const agentsPerPage = 10;
   const { toast } = useToast();
 
   useEffect(() => {
     loadAgents();
   }, []);
+
+  useEffect(() => {
+    fetchAgentStats();
+    // eslint-disable-next-line
+  }, [period]);
 
   useEffect(() => {
     const filtered = agents.filter(agent => 
@@ -87,6 +102,32 @@ export default function AdminAgents() {
     setFilteredAgents(filtered);
     setCurrentPage(1);
   }, [searchTerm, agents]);
+
+  // On ne calcule plus les stats ici, elles viennent de l'API dédiée
+  // Appel API backend pour stats agents par période
+  // Pour inclure la date de fin, on ajoute 1 jour à end
+  const fetchAgentStats = async () => {
+    setIsStatsLoading(true);
+    try {
+      const endPlusOne = dayjs(period.end).add(1, 'day').format('YYYY-MM-DD');
+      const data = await apiGetAgentStats(period.start, endPlusOne);
+      if (data && data.success) {
+        const stats: Record<string, { deposit: number; withdrawal: number; commission: number }> = {};
+        data.stats.forEach((row: any) => {
+          stats[row.agent.id] = {
+            deposit: row.deposit,
+            withdrawal: row.withdrawal,
+            commission: row.commission
+          };
+        });
+        setAgentStats(stats);
+      }
+    } catch (e) {
+      // ignore
+    } finally {
+      setIsStatsLoading(false);
+    }
+  };
 
   const loadAgents = async () => {
     try {
@@ -100,32 +141,6 @@ export default function AdminAgents() {
       const agentUsers = allUsers.filter((user: any) => user.role === 'agent');
       setAgents(agentUsers);
       setFilteredAgents(agentUsers);
-
-      // Calculer les statistiques par agent
-      const earnings: Record<string, number> = {};
-      const stats: Record<string, { deposits: number; commissions: number }> = {};
-
-      agentUsers.forEach((agent: any) => {
-        // Calculer les gains totaux
-        const agentEarning = allTransactions
-          .filter((t: any) => t.userId === agent.id && (t.type === 'earning' || t.type === 'commission') && t.status === 'approved')
-          .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
-        earnings[agent.id] = agentEarning;
-
-        // Calculer les statistiques de dépôts et commissions
-        const deposits = allTransactions
-          .filter((t: any) => t.agentId === agent.id && t.type === 'deposit' && t.status === 'approved')
-          .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
-
-        const commissions = allTransactions
-          .filter((t: any) => t.agentId === agent.id && t.type === 'commission' && t.status === 'approved')
-          .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
-
-        stats[agent.id] = { deposits, commissions };
-      });
-
-      setAgentEarnings(earnings);
-      setAgentStats(stats);
     } catch (error) {
       console.error('Error loading agents:', error);
       toast({
@@ -441,6 +456,44 @@ export default function AdminAgents() {
     <>
       <Navigation userRole="admin" />
       <div className="p-2 sm:p-6 space-y-3 sm:space-y-6 min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#e0e7ef] to-[#f1f5f9] mb-16 sm:mb-24">
+        {/* Sélection de période moderne et cohérente */}
+        <div className="w-full flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4 bg-white/80 rounded-lg shadow p-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-blue-700">Période :</span>
+            <input
+              type="date"
+              value={period.start}
+              max={period.end}
+              onChange={e => setPeriod(p => ({ ...p, start: e.target.value }))}
+              className="border border-blue-200 rounded px-2 py-1 focus:ring-2 focus:ring-blue-400 bg-white text-blue-900 shadow-sm"
+            />
+            <span className="text-blue-500 font-bold">—</span>
+            <input
+              type="date"
+              value={period.end}
+              min={period.start}
+              max={dayjs().format('YYYY-MM-DD')}
+              onChange={e => setPeriod(p => ({ ...p, end: e.target.value }))}
+              className="border border-blue-200 rounded px-2 py-1 focus:ring-2 focus:ring-blue-400 bg-white text-blue-900 shadow-sm"
+            />
+          </div>
+          <div className="flex gap-2 flex-wrap mt-2 sm:mt-0">
+            <Button size="sm" variant="secondary" className="bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100" onClick={() => {
+              const today = dayjs().format('YYYY-MM-DD');
+              setPeriod({ start: today, end: today });
+            }}>Aujourd'hui</Button>
+            <Button size="sm" variant="secondary" className="bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100" onClick={() => {
+              const yesterday = dayjs().subtract(1, 'day').format('YYYY-MM-DD');
+              setPeriod({ start: yesterday, end: yesterday });
+            }}>Hier</Button>
+            <Button size="sm" variant="secondary" className="bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100" onClick={() => {
+              const startOfWeek = dayjs().startOf('week').add(1, 'day').format('YYYY-MM-DD');
+              const today = dayjs().format('YYYY-MM-DD');
+              setPeriod({ start: startOfWeek, end: today });
+            }}>Cette semaine</Button>
+            {isStatsLoading && <span className="ml-2 text-xs text-blue-600">Chargement stats…</span>}
+          </div>
+        </div>
         
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-4 bg-white/80 rounded-lg shadow-md p-3 sm:p-4">
@@ -495,16 +548,6 @@ export default function AdminAgents() {
                     </div>
                   </div>
                   
-                  <div>
-                    <Label htmlFor="agent-email">Email</Label>
-                    <Input
-                      id="agent-email"
-                      type="email"
-                      value={newAgentData.email}
-                      onChange={(e) => setNewAgentData({ ...newAgentData, email: e.target.value })}
-                      placeholder="jean@example.com"
-                    />
-                  </div>
                   
                   <div className="grid grid-cols-2 gap-2">
                     <div>
@@ -614,7 +657,7 @@ export default function AdminAgents() {
                 <div>
                   <p className="text-sm text-yellow-600">Total Commissions</p>
                   <p className="text-lg font-bold text-yellow-800">
-                    {formatAmount(Object.values(agentStats).reduce((sum, stat) => sum + stat.commissions, 0))}
+                    {formatAmount(Object.values(agentStats).reduce((sum, stat) => sum + stat.commission, 0))}
                   </p>
                 </div>
                 <DollarSign className="w-8 h-8 text-yellow-600" />
@@ -707,6 +750,8 @@ export default function AdminAgents() {
                     <TableHead>Opérateur</TableHead>
                     <TableHead>Statut</TableHead>
                     <TableHead>Solde</TableHead>
+                    <TableHead>Dépôts</TableHead>
+                    <TableHead>Retraits</TableHead>
                     <TableHead>Commissions</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -725,9 +770,6 @@ export default function AdminAgents() {
                       <TableCell>
                         <div>
                           <div className="text-sm">{agent.phone}</div>
-                          {agent.email && (
-                            <div className="text-sm text-muted-foreground">{agent.email}</div>
-                          )}
                         </div>
                       </TableCell>
                       <TableCell>{agent.agentNumber || 'N/A'}</TableCell>
@@ -736,7 +778,9 @@ export default function AdminAgents() {
                       </TableCell>
                       <TableCell>{getStatusBadge(agent.accountStatus)}</TableCell>
                       <TableCell>{formatAmount(agent.balance)}</TableCell>
-                      <TableCell>{formatAmount(agentStats[agent.id]?.commissions || 0)}</TableCell>
+                      <TableCell>{formatAmount(agentStats[agent.id]?.deposit || 0)}</TableCell>
+                      <TableCell>{formatAmount(agentStats[agent.id]?.withdrawal || 0)}</TableCell>
+                      <TableCell>{formatAmount(agentStats[agent.id]?.commission || 0)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-1 justify-end">
                           <Button 
@@ -793,15 +837,15 @@ export default function AdminAgents() {
           </CardContent>
         </Card>
 
-        {/* Dialog pour voir les détails d'un agent */}
+        {/* Dialog pour voir les détails d'un agent + stats par période */}
         <Dialog open={isViewAgentOpen} onOpenChange={setIsViewAgentOpen}>
-          <DialogContent className="max-w-lg mx-2">
+          <DialogContent className="w-full max-w-lg sm:max-w-xl md:max-w-2xl mx-2 p-2 sm:p-6">
             <DialogHeader>
               <DialogTitle>Détails de l'Agent</DialogTitle>
             </DialogHeader>
             {selectedAgent && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label className="font-semibold">Nom complet</Label>
                     <p className="text-sm text-muted-foreground">{selectedAgent.fullName}</p>
@@ -837,10 +881,27 @@ export default function AdminAgents() {
                     </p>
                   </div>
                 </div>
-                
+                {/* Sélection de période pour stats agent */}
+                <div className="flex flex-wrap gap-2 items-center border-t pt-4">
+                  <label className="font-medium">Période&nbsp;:</label>
+                  <Button size="sm" variant="outline" onClick={() => {
+                    const today = dayjs().format('YYYY-MM-DD');
+                    setPeriod({ start: today, end: today });
+                  }}>Aujourd'hui</Button>
+                  <Button size="sm" variant="outline" onClick={() => {
+                    const yesterday = dayjs().subtract(1, 'day').format('YYYY-MM-DD');
+                    setPeriod({ start: yesterday, end: yesterday });
+                  }}>Hier</Button>
+                  <Button size="sm" variant="outline" onClick={() => {
+                    const startOfWeek = dayjs().startOf('week').add(1, 'day').format('YYYY-MM-DD');
+                    const today = dayjs().format('YYYY-MM-DD');
+                    setPeriod({ start: startOfWeek, end: today });
+                  }}>Cette semaine</Button>
+                  {isStatsLoading && <span className="ml-2 text-xs text-blue-600">Chargement stats…</span>}
+                </div>
                 <div className="border-t pt-4">
-                  <h4 className="font-semibold mb-2">Statistiques</h4>
-                  <div className="grid grid-cols-3 gap-4">
+                  <h4 className="font-semibold mb-2">Statistiques sur la période</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     <div className="text-center">
                       <p className="text-lg font-bold text-green-600">
                         {formatAmount(selectedAgent.balance)}
@@ -849,13 +910,19 @@ export default function AdminAgents() {
                     </div>
                     <div className="text-center">
                       <p className="text-lg font-bold text-blue-600">
-                        {formatAmount(agentStats[selectedAgent.id]?.deposits || 0)}
+                        {formatAmount(agentStats[selectedAgent.id]?.deposit || 0)}
                       </p>
-                      <p className="text-xs text-muted-foreground">Dépôts gérés</p>
+                      <p className="text-xs text-muted-foreground">Dépôts</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-lg font-bold text-red-600">
+                        {formatAmount(agentStats[selectedAgent.id]?.withdrawal || 0)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Retraits</p>
                     </div>
                     <div className="text-center">
                       <p className="text-lg font-bold text-yellow-600">
-                        {formatAmount(agentStats[selectedAgent.id]?.commissions || 0)}
+                        {formatAmount(agentStats[selectedAgent.id]?.commission || 0)}
                       </p>
                       <p className="text-xs text-muted-foreground">Commissions</p>
                     </div>
@@ -893,15 +960,6 @@ export default function AdminAgents() {
                   </div>
                 </div>
                 
-                <div>
-                  <Label htmlFor="edit-agent-email">Email</Label>
-                  <Input
-                    id="edit-agent-email"
-                    type="email"
-                    value={editAgentData.email}
-                    onChange={(e) => setEditAgentData({ ...editAgentData, email: e.target.value })}
-                  />
-                </div>
                 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
@@ -914,9 +972,9 @@ export default function AdminAgents() {
                   </div>
                   <div>
                     <Label htmlFor="edit-agent-operator">Opérateur</Label>
-                    <Select 
-                      value={editAgentData.operator} 
-                      onValueChange={(value: 'moov' | 'orange' | 'wave') => 
+                    <Select
+                      value={editAgentData.operator}
+                      onValueChange={(value: 'moov' | 'orange' | 'wave') =>
                         setEditAgentData({ ...editAgentData, operator: value })
                       }
                     >

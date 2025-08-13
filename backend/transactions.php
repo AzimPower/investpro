@@ -124,14 +124,33 @@ switch ($method) {
         break;
     case 'PUT':
         $data = json_decode(file_get_contents('php://input'), true);
-        $stmt = $pdo->prepare('UPDATE transactions SET status = ?, processedAt = ?, processedBy = ?, reason = ? WHERE id = ?');
-        $stmt->execute([
-            $data['status'],
-            $data['processedAt'] ?? null,
-            $data['processedBy'] ?? null,
-            $data['reason'] ?? null,
-            $data['id']
-        ]);
+        // Construction dynamique de la requête pour permettre la mise à jour de agentId et agentNumber
+        $fields = ['status = ?'];
+        $params = [$data['status']];
+        if (isset($data['processedAt'])) {
+            $fields[] = 'processedAt = ?';
+            $params[] = $data['processedAt'];
+        }
+        if (isset($data['processedBy'])) {
+            $fields[] = 'processedBy = ?';
+            $params[] = $data['processedBy'];
+        }
+        if (isset($data['reason'])) {
+            $fields[] = 'reason = ?';
+            $params[] = $data['reason'];
+        }
+        if (isset($data['agentId'])) {
+            $fields[] = 'agentId = ?';
+            $params[] = $data['agentId'];
+        }
+        if (isset($data['agentNumber'])) {
+            $fields[] = 'agentNumber = ?';
+            $params[] = $data['agentNumber'];
+        }
+        $params[] = $data['id'];
+        $sql = 'UPDATE transactions SET ' . implode(', ', $fields) . ' WHERE id = ?';
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
         echo json_encode(['success' => true]);
         break;
     case 'DELETE':

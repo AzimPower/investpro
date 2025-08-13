@@ -80,7 +80,7 @@ export const Profile = () => {
 
   const handleUpdateProfile = async () => {
     // Validation des champs obligatoires
-    const requiredFields = ['fullName', 'phone', 'email'];
+    const requiredFields = ['fullName', 'phone'];
     if (user?.role === 'agent') {
       requiredFields.push('agentNumber');
     }
@@ -102,7 +102,7 @@ export const Profile = () => {
         id: user.id,
         fullName: editedUser.fullName.trim(),
         phone: editedUser.phone.trim(),
-        email: editedUser.email.trim(),
+         ...(editedUser.email?.trim() && { email: editedUser.email.trim() }),
         ...(user.role === 'agent' && { agentNumber: editedUser.agentNumber.trim() })
       };
       

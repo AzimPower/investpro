@@ -2,7 +2,7 @@
 // Configuration pour l'environnement de production Hostinger
 // Remplacez ces valeurs par vos informations de base de données Hostinger
 
-$host = '193.203.168.45'; // ou l'adresse fournie par Hostinger
+$host = 'srv1850.hstgr.io'; // ou l'adresse fournie par Hostinger
 $db   = 'u538245909_invest_pro'; // Nom de votre base de données sur Hostinger
 $user = 'u538245909_invest_pro'; // Nom d'utilisateur fourni par Hostinger
 $pass = '@Le08novembre'; // Mot de passe fourni par Hostinger

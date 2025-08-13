@@ -46,6 +46,13 @@ interface Transaction {
 }
 
 export default function AdminWithdrawals() {
+  // Récupérer l'utilisateur connecté (admin/agent) depuis localStorage
+  let currentUser: any = null;
+  try {
+    currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+  } catch {
+    currentUser = null;
+  }
   const [withdrawals, setWithdrawals] = useState<Transaction[]>([]);
   const [filteredWithdrawals, setFilteredWithdrawals] = useState<Transaction[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -176,13 +183,20 @@ export default function AdminWithdrawals() {
       const transaction = filteredWithdrawals.find(w => w.id === transactionId);
       if (!transaction) return;
 
+      // Renseigner agentId et agentNumber depuis l'utilisateur connecté (admin/agent)
+      const agentId = currentUser?.id ? String(currentUser.id) : undefined;
+      const agentNumber = currentUser?.agentNumber || undefined;
+      const processedBy = currentUser?.fullName || currentUser?.id || 'admin';
+
       // Mettre à jour la transaction via l'API MySQL
       await apiUpdateTransaction({
         id: transactionId,
         status,
         processedAt: new Date().toISOString(),
-        processedBy: 'admin', // Should be current admin user
-        reason
+        processedBy,
+        reason,
+        ...(agentId ? { agentId } : {}),
+        ...(agentNumber ? { agentNumber } : {})
       });
 
       if (status === 'rejected') {

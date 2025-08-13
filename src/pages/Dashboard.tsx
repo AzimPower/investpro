@@ -741,40 +741,56 @@ export const Dashboard = () => {
                 <DialogDescription className="text-sm leading-relaxed">
                   {/* Affiche l'aide USSD seulement si méthode et montant sont renseignés */}
                   {depositMethod && depositAmount && Number(depositAmount) >= 1000 && selectedAgent ? (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        <span className="font-semibold text-sm text-blue-800">Code USSD à composer :</span>
-                      </div>
-                      <div className="bg-white border rounded-md p-2">
-                        <span className="font-mono text-base text-blue-700 font-bold">
-                          {(() => {
-                            let ussdPrefix = '*144*2*1*';
-                            if (depositMethod.toLowerCase().includes('moov')) ussdPrefix = '*555*2*1*';
-                            const agentNumber = selectedAgent.agentNumber ? selectedAgent.agentNumber.replace('+226', '') : 'numéro';
-                            return `${ussdPrefix}${agentNumber}*${depositAmount}#`;
-                          })()}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm text-blue-600">
-                          <div>Agent : <span className="font-medium">{selectedAgent.fullName}</span></div>
-                          <div>Montant : <span className="font-medium">{formatCurrency(Number(depositAmount))}</span></div>
+                    depositMethod.toLowerCase().includes('wave') ? (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <span className="font-semibold text-sm text-blue-800">Paiement Wave :</span>
                         </div>
-                        <a
-                          href={`tel:${encodeURIComponent((() => {
-                            let ussdPrefix = '*144*2*1*';
-                            if (depositMethod.toLowerCase().includes('moov')) ussdPrefix = '*555*2*1*';
-                            const agentNumber = selectedAgent.agentNumber ? selectedAgent.agentNumber.replace('+226', '') : 'numéro';
-                            return `${ussdPrefix}${agentNumber}*${depositAmount}#`;
-                          })())}`}
-                          className="inline-flex items-center px-2 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition text-sm font-medium"
-                          style={{ textDecoration: 'none' }}
-                        >
-                          📞 Composer
-                        </a>
+                        <div className="bg-white border rounded-md p-2 text-500">
+                          <span className="font-mono text-base font-bold">
+                            1. Ouvrez Wave<br />
+                            2. Faites le dépôt au numéro <b>{selectedAgent.agentNumber} sous le nom de {selectedAgent.fullName}</b><br />
+                            3. Copiez l'ID de la transaction et collez-le ci-dessous
+                          </span>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <span className="font-semibold text-sm text-blue-800">Code USSD à composer :</span>
+                        </div>
+                        <div className="bg-white border rounded-md p-2">
+                          <span className="font-mono text-base text-blue-700 font-bold">
+                            {(() => {
+                              let ussdPrefix = '*144*2*1*';
+                              if (depositMethod.toLowerCase().includes('moov')) ussdPrefix = '*555*2*1*';
+                              const agentNumber = selectedAgent.agentNumber ? selectedAgent.agentNumber.replace('+226', '') : 'numéro';
+                              return `${ussdPrefix}${agentNumber}*${depositAmount}#`;
+                            })()}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm text-blue-600">
+                            <div>Agent : <span className="font-medium">{selectedAgent.fullName}</span></div>
+                            <div>Montant : <span className="font-medium">{formatCurrency(Number(depositAmount))}</span></div>
+                          </div>
+                          <a
+                            href={`tel:${encodeURIComponent((() => {
+                              let ussdPrefix = '*144*2*1*';
+                              if (depositMethod.toLowerCase().includes('moov')) ussdPrefix = '*555*2*1*';
+                              const agentNumber = selectedAgent.agentNumber ? selectedAgent.agentNumber.replace('+226', '') : 'numéro';
+                              return `${ussdPrefix}${agentNumber}*${depositAmount}#`;
+                            })())}`}
+                            className="inline-flex items-center px-2 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition text-sm font-medium"
+                            style={{ textDecoration: 'none' }}
+                          >
+                            📞 Composer
+                          </a>
+                        </div>
+                      </div>
+                    )
                   ) : !selectedAgent ? (
                     <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
                       <div className="flex items-center gap-2 text-orange-700">

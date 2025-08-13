@@ -1,3 +1,15 @@
+// --- AGENT STATS ---
+/**
+ * Récupère les statistiques d'un ou de tous les agents sur une période donnée
+ * @param startDate format YYYY-MM-DD
+ * @param endDate format YYYY-MM-DD
+ * @param agentId facultatif (pour filtrer un seul agent)
+ */
+export async function apiGetAgentStats(startDate: string, endDate: string, agentId?: number) {
+  let url = `/backend/agent_stats.php?startDate=${startDate}&endDate=${endDate}`;
+  if (agentId) url += `&agentId=${agentId}`;
+  return apiCall(url);
+}
 // --- AGENT APPLICATIONS ---
 /**
  * Crée une demande pour devenir agent

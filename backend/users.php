@@ -100,29 +100,31 @@ switch ($method) {
             }
         } else {
             // Inscription utilisateur
-            $stmt = $pdo->prepare('INSERT INTO users (fullName, phone, email, password, role, balance, totalEarned, referralCode, referredBy, accountStatus, agentNumber, operator) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-            $stmt->execute([
-                $data['fullName'],
-                $data['phone'],
-                $data['email'] ?? null,
-                hashPassword($data['password']),
-                $data['role'] ?? 'user',
-                $data['balance'] ?? 0,
-                $data['totalEarned'] ?? 0,
-                $data['referralCode'] ?? null,
-                $data['referredBy'] ?? null,
-                $data['accountStatus'] ?? 'active',
-                $data['agentNumber'] ?? null,
-                $data['operator'] ?? null
-            ]);
-            
-            $newUserId = $pdo->lastInsertId();
-            
-            // Envoyer notification de bienvenue
-            include_once 'notifications.php';
-            sendWelcomeNotification($newUserId, $data['fullName']);
-            
-            echo json_encode(['success' => true, 'id' => $newUserId]);
+            try {
+                $stmt = $pdo->prepare('INSERT INTO users (fullName, phone, email, password, role, balance, totalEarned, referralCode, referredBy, accountStatus, agentNumber, operator) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+                $stmt->execute([
+                    $data['fullName'],
+                    $data['phone'],
+                    $data['email'] ?? null,
+                    hashPassword($data['password']),
+                    $data['role'] ?? 'user',
+                    $data['balance'] ?? 0,
+                    $data['totalEarned'] ?? 0,
+                    $data['referralCode'] ?? null,
+                    $data['referredBy'] ?? null,
+                    $data['accountStatus'] ?? 'active',
+                    $data['agentNumber'] ?? null,
+                    $data['operator'] ?? null
+                ]);
+                $newUserId = $pdo->lastInsertId();
+                if (function_exists('sendWelcomeNotification')) {
+                    sendWelcomeNotification($newUserId, $data['fullName']);
+                }
+                echo json_encode(['success' => true, 'id' => $newUserId]);
+            } catch (Exception $e) {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+            }
         }
         break;
     case 'PUT':
@@ -139,6 +141,10 @@ switch ($method) {
             $params = [];
             foreach ($data as $key => $value) {
                 if ($key !== 'id' && $key !== 'action') {
+                    // Ignorer email si vide ou null
+                    if ($key === 'email' && (is_null($value) || $value === '')) {
+                        continue;
+                    }
                     // Validation spéciale pour balance et totalEarned
                     if ($key === 'balance' || $key === 'totalEarned') {
                         $validatedValue = filter_var($value, FILTER_VALIDATE_FLOAT);

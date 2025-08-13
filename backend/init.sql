@@ -1,117 +1,240 @@
+--
+-- Structure de la table `agent_applications`
+--
 
--- backend/init.sql
--- Table des utilisateurs
-CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    fullName VARCHAR(100) NOT NULL,
-    phone VARCHAR(30) NOT NULL UNIQUE,
-    email VARCHAR(100),
-    password VARCHAR(255) NOT NULL,
-    role ENUM('user','admin','agent') DEFAULT 'user',
-    balance DECIMAL(15,2) DEFAULT 0,
-    totalEarned DECIMAL(15,2) DEFAULT 0,
-    referralCode VARCHAR(50),
-    referredBy INT,
-    accountStatus ENUM('active','inactive','blocked') DEFAULT 'active',
-    agentNumber VARCHAR(30),
-    operator ENUM('moov', 'orange', 'wave') DEFAULT NULL COMMENT 'Opérateur de paiement pour les agents',
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (referredBy) REFERENCES users(id)
-);
-
--- Table des demandes pour devenir agent
-CREATE TABLE IF NOT EXISTS agent_applications (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    userId INT NOT NULL,
-    fullName VARCHAR(100) NOT NULL,
-    phone VARCHAR(30) NOT NULL,
-    operator ENUM('moov', 'orange', 'wave') NOT NULL,
-    agentNumber VARCHAR(30) NOT NULL,
-    status ENUM('pending','approved','rejected') DEFAULT 'pending',
-    adminNote TEXT,
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    reviewedAt DATETIME DEFAULT NULL,
-    reviewedBy INT DEFAULT NULL,
-    FOREIGN KEY (userId) REFERENCES users(id)
-);
-
--- Table des lots d'investissement
-CREATE TABLE IF NOT EXISTS lots (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    price DECIMAL(15,2) NOT NULL,
-    dailyReturn DECIMAL(15,2) NOT NULL,
-    duration INT NOT NULL,
-    color VARCHAR(30),
-    active BOOLEAN DEFAULT TRUE
-);
-
--- Table des transactions
-CREATE TABLE IF NOT EXISTS transactions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    userId INT NOT NULL,
-    type ENUM('deposit','withdrawal','earning','commission','purchase','transfer_sent','transfer_received') NOT NULL,
-    amount DECIMAL(15,2) NOT NULL,
-    status ENUM('pending','approved','rejected','completed') DEFAULT 'pending',
-    description TEXT,
-    lotId INT,
-    paymentMethod VARCHAR(50),
-    paymentProof TEXT,
-    agentId INT,
-    agentNumber VARCHAR(30),
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    processedAt DATETIME,
-    processedBy VARCHAR(100),
-    reason TEXT,
-    FOREIGN KEY (userId) REFERENCES users(id),
-    FOREIGN KEY (lotId) REFERENCES lots(id),
-    FOREIGN KEY (agentId) REFERENCES users(id)
-);
-
--- Table des lots achetés par utilisateur
-CREATE TABLE IF NOT EXISTS user_lots (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    userId INT NOT NULL,
-    lotId INT NOT NULL,
-    purchasedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    active BOOLEAN DEFAULT TRUE,
-    lastEarningDate DATETIME,
-    FOREIGN KEY (userId) REFERENCES users(id),
-    FOREIGN KEY (lotId) REFERENCES lots(id)
-);
-
-
--- Table des paramètres du système
-CREATE TABLE IF NOT EXISTS settings (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    commissionLevel1 FLOAT,
-    commissionLevel2 FLOAT,
-    withdrawalFeePercent FLOAT,
-    minWithdrawalAmount FLOAT,
-    maxWithdrawalAmount FLOAT,
-    processingDelayHours INT,
-    autoProcessing TINYINT(1),
-    maintenanceMode TINYINT(1),
-    welcomeMessage TEXT,
-    supportEmail VARCHAR(255),
-    supportPhone VARCHAR(50),
-    paymentMethods TEXT
-);
-
--- Table des notifications
-CREATE TABLE IF NOT EXISTS notifications (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    userId INT NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    message TEXT NOT NULL,
-    type ENUM('success','error','warning','info') NOT NULL,
-    category ENUM('transaction','system','earning','agent','general','commission') DEFAULT 'general',
-    isRead TINYINT(1) DEFAULT 0,
-    relatedId INT DEFAULT NULL,
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    readAt DATETIME DEFAULT NULL,
-    INDEX idx_user_read (userId, isRead),
-    INDEX idx_created_at (createdAt),
-    INDEX idx_user_id (userId)
+CREATE TABLE `agent_applications` (
+  `id` int(11) NOT NULL,
+  `userId` int(11) NOT NULL,
+  `fullName` varchar(100) NOT NULL,
+  `phone` varchar(30) NOT NULL,
+  `operator` enum('moov','orange','wave') NOT NULL,
+  `agentNumber` varchar(30) NOT NULL,
+  `status` enum('pending','approved','rejected') DEFAULT 'pending',
+  `adminNote` text DEFAULT NULL,
+  `createdAt` datetime DEFAULT current_timestamp(),
+  `reviewedAt` datetime DEFAULT NULL,
+  `reviewedBy` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `lots`
+--
+
+CREATE TABLE `lots` (
+  `id` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `price` decimal(15,2) NOT NULL,
+  `dailyReturn` decimal(15,2) NOT NULL,
+  `color` varchar(30) DEFAULT NULL,
+  `active` tinyint(1) DEFAULT 1,
+  `duration` int(11) NOT NULL DEFAULT 40
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--------------------------------------------------------
+
+--
+-- Structure de la table `notifications`
+--
+
+CREATE TABLE `notifications` (
+  `id` int(11) NOT NULL,
+  `userId` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `message` text NOT NULL,
+  `type` enum('success','error','warning','info') NOT NULL,
+  `category` enum('transaction','system','earning','agent','general','commission') DEFAULT 'general',
+  `isRead` tinyint(1) DEFAULT 0,
+  `relatedId` int(11) DEFAULT NULL,
+  `createdAt` datetime DEFAULT current_timestamp(),
+  `readAt` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `settings`
+--
+
+CREATE TABLE `settings` (
+  `id` int(11) NOT NULL,
+  `commissionLevel1` float DEFAULT NULL,
+  `commissionLevel2` float DEFAULT NULL,
+  `withdrawalFeePercent` float DEFAULT NULL,
+  `minWithdrawalAmount` float DEFAULT NULL,
+  `maxWithdrawalAmount` float DEFAULT NULL,
+  `processingDelayHours` int(11) DEFAULT NULL,
+  `autoProcessing` tinyint(1) DEFAULT NULL,
+  `maintenanceMode` tinyint(1) DEFAULT NULL,
+  `welcomeMessage` text DEFAULT NULL,
+  `supportEmail` varchar(255) DEFAULT NULL,
+  `supportPhone` varchar(50) DEFAULT NULL,
+  `paymentMethods` text DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `transactions`
+--
+
+CREATE TABLE `transactions` (
+  `id` int(11) NOT NULL,
+  `userId` int(11) NOT NULL,
+  `type` enum('deposit','withdrawal','earning','commission','purchase','transfer_sent','transfer_received') NOT NULL,
+  `amount` decimal(15,2) NOT NULL,
+  `status` enum('pending','approved','rejected','completed') DEFAULT 'pending',
+  `description` text DEFAULT NULL,
+  `lotId` int(11) DEFAULT NULL,
+  `paymentMethod` varchar(50) DEFAULT NULL,
+  `paymentProof` text DEFAULT NULL,
+  `agentId` int(11) DEFAULT NULL,
+  `agentNumber` varchar(30) DEFAULT NULL,
+  `createdAt` datetime DEFAULT current_timestamp(),
+  `processedAt` datetime DEFAULT NULL,
+  `processedBy` varchar(100) DEFAULT NULL,
+  `reason` text DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `users`
+--
+
+CREATE TABLE `users` (
+  `id` int(11) NOT NULL,
+  `fullName` varchar(100) NOT NULL,
+  `phone` varchar(30) NOT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  `role` enum('user','admin','agent') DEFAULT 'user',
+  `totalEarned` decimal(15,2) DEFAULT 0.00,
+  `balance` decimal(15,2) DEFAULT 0.00,
+  `referralCode` varchar(50) DEFAULT NULL,
+  `referredBy` int(11) DEFAULT NULL,
+  `accountStatus` enum('active','inactive','blocked') DEFAULT 'active',
+  `agentNumber` varchar(30) DEFAULT NULL,
+  `operator` enum('moov','orange','wave') DEFAULT NULL,
+  `createdAt` datetime DEFAULT current_timestamp(),
+  `updatedAt` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `password` varchar(255) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--------------------------------------------------------
+
+--
+-- Structure de la table `user_lots`
+--
+
+CREATE TABLE `user_lots` (
+  `id` int(11) NOT NULL,
+  `userId` int(11) NOT NULL,
+  `lotId` int(11) NOT NULL,
+  `purchasedAt` datetime DEFAULT current_timestamp(),
+  `active` tinyint(1) DEFAULT 1,
+  `lastEarningDate` datetime DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Index pour les tables déchargées
+--
+
+--
+-- Index pour la table `agent_applications`
+--
+ALTER TABLE `agent_applications`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `userId` (`userId`);
+
+--
+-- Index pour la table `lots`
+--
+ALTER TABLE `lots`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Index pour la table `notifications`
+--
+ALTER TABLE `notifications`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_user_read` (`userId`,`isRead`),
+  ADD KEY `idx_created_at` (`createdAt`);
+
+--
+-- Index pour la table `settings`
+--
+ALTER TABLE `settings`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Index pour la table `transactions`
+--
+ALTER TABLE `transactions`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `userId` (`userId`),
+  ADD KEY `lotId` (`lotId`),
+  ADD KEY `agentId` (`agentId`);
+
+--
+-- Index pour la table `users`
+--
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `phone` (`phone`),
+  ADD KEY `referredBy` (`referredBy`);
+
+--
+-- Index pour la table `user_lots`
+--
+ALTER TABLE `user_lots`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `userId` (`userId`),
+  ADD KEY `lotId` (`lotId`);
+
+--
+-- AUTO_INCREMENT pour les tables déchargées
+--
+
+--
+-- AUTO_INCREMENT pour la table `agent_applications`
+--
+ALTER TABLE `agent_applications`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
+-- AUTO_INCREMENT pour la table `lots`
+--
+ALTER TABLE `lots`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+
+--
+-- AUTO_INCREMENT pour la table `notifications`
+--
+ALTER TABLE `notifications`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=154;
+
+--
+-- AUTO_INCREMENT pour la table `settings`
+--
+ALTER TABLE `settings`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT pour la table `transactions`
+--
+ALTER TABLE `transactions`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=464;
+
+--
+-- AUTO_INCREMENT pour la table `users`
+--
+ALTER TABLE `users`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+
+--
+-- AUTO_INCREMENT pour la table `user_lots`
+--
+ALTER TABLE `user_lots`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=95;
+COMMIT;
