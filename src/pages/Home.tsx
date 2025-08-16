@@ -22,7 +22,7 @@ export const Home = () => {
         setLoading(true);
         const lotData = await apiGetLots();
         if (lotData && Array.isArray(lotData)) {
-          // Filtrer les lots actifs et normaliser les données
+          // Filtrer les lots actifs, normaliser et trier par prix croissant
           const activeLots = lotData
             .filter(lot => lot.active)
             .map(lot => ({
@@ -31,10 +31,11 @@ export const Home = () => {
               description: lot.description || `Investissement ${lot.name}`,
               price: parseFloat(lot.price || 0),
               dailyReturn: parseFloat(lot.dailyReturn || 0),
-              duration: parseInt(lot.duration || 30), // Durée par défaut de 30 jours
+              duration: parseInt(lot.duration || 30),
               color: lot.color || '#3B82F6',
               active: Boolean(lot.active)
-            }));
+            }))
+            .sort((a, b) => a.price - b.price);
           setLots(activeLots);
         }
       } catch (error) {
@@ -44,7 +45,6 @@ export const Home = () => {
         setLoading(false);
       }
     };
-    
     fetchLots();
   }, []);
 
@@ -142,10 +142,9 @@ export const Home = () => {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-6">
             {loading ? (
-              // Indicateur de chargement
-              Array.from({ length: 5 }).map((_, index) => (
+              Array.from({ length: 4 }).map((_, index) => (
                 <Card key={index} className="animate-pulse">
                   <CardHeader>
                     <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>

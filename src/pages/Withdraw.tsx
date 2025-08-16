@@ -16,6 +16,8 @@ import { ArrowUpRight, Wallet, Clock, AlertCircle, CheckCircle } from "lucide-re
 
 export const Withdraw = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [userLots, setUserLots] = useState<any[]>([]);
+  const [lots, setLots] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawMethod, setWithdrawMethod] = useState("");
@@ -64,7 +66,17 @@ export const Withdraw = () => {
           setPaymentMethods(settings.paymentMethods);
         }
         
-        setUser({ ...freshUser, dailyEarnings });
+  setUser({ ...freshUser, dailyEarnings });
+
+  // Charger les lots de l'utilisateur
+  const userLotsRes = await fetch(`/backend/user_lots.php?userId=${freshUser.id}`);
+  const userLotsData = await userLotsRes.json();
+  setUserLots(Array.isArray(userLotsData) ? userLotsData : []);
+
+  // Charger tous les lots
+  const lotsRes = await fetch('/backend/lots.php');
+  const lotsData = await lotsRes.json();
+  setLots(Array.isArray(lotsData) ? lotsData : []);
       } catch (error) {
         toast({
           title: "Erreur",
@@ -91,10 +103,43 @@ export const Withdraw = () => {
   };
 
   const handleWithdraw = async () => {
+
+    // Vérifier le jour de la semaine (0=dimanche, 1=lundi, 2=mardi, ..., 6=samedi)
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    if (dayOfWeek !== 2 && dayOfWeek !== 6) {
+      toast({
+        title: "Retrait non disponible",
+        description: "Les retraits sont uniquement disponibles les mardi et samedi.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!user || !withdrawAmount || !withdrawMethod || !paymentDetails) {
       toast({
         title: "Erreur",
         description: "Veuillez remplir tous les champs",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Vérification lot Grenat ou supérieur
+    const lotHierarchy = ["Topaze", "Grenat", "Rubis", "Saphir", "Émeraude", "Diamant"];
+    // Récupérer les lots actifs de l'utilisateur
+    const activeUserLots = userLots.filter((ul) => ul.active === 1 || ul.active === "1");
+    // Récupérer les lots correspondants
+    const ownedLotNames = activeUserLots.map((ul) => {
+      const lot = lots.find((l) => l.id === ul.lotId);
+      return lot ? lot.name : null;
+    }).filter(Boolean);
+    // Vérifier si l'utilisateur possède un lot Grenat ou supérieur
+    const hasGrenatOrBetter = ownedLotNames.some((name) => lotHierarchy.indexOf(name) >= lotHierarchy.indexOf("Grenat"));
+    if (!hasGrenatOrBetter) {
+      toast({
+        title: "Retrait impossible",
+        description: "Vous devez posséder au moins un lot Grenat ou supérieur pour effectuer un retrait.",
         variant: "destructive",
       });
       return;
@@ -119,11 +164,11 @@ export const Withdraw = () => {
       return;
     }
 
-    const minWithdraw = 5000;
-    if (amount < minWithdraw) {
+  const minWithdraw = 3000;
+  if (amount < minWithdraw) {
       toast({
         title: "Montant trop faible",
-        description: `Le montant minimum de retrait est de ${formatCurrency(minWithdraw)}`,
+  description: `Le montant minimum de retrait est de ${formatCurrency(minWithdraw)}`,
         variant: "destructive",
       });
       return;
@@ -239,9 +284,9 @@ export const Withdraw = () => {
   };
 
   const calculateFees = (amount: number) => {
-    // Example: 2% fee with minimum 500 FCFA
-    const feePercentage = 0.02;
-    const minFee = 500;
+  // Frais de retrait : 10% avec minimum 500 FCFA
+  const feePercentage = 0.10;
+  const minFee = 300;
     const fee = Math.max(amount * feePercentage, minFee);
     return Math.min(fee, amount); // Fee cannot exceed the withdrawal amount
   };
@@ -314,8 +359,8 @@ export const Withdraw = () => {
                   <span className="font-medium text-warning text-sm sm:text-base">Informations importantes</span>
                 </div>
                 <ul className="text-xs sm:text-sm text-muted-foreground space-y-1">
-                  <li>• Montant minimum de retrait : 5 000 FCFA</li>
-                  <li>• Frais de retrait : 10% (minimum 500 FCFA)</li>
+                  <li>• Montant minimum de retrait : 3 000 FCFA</li>
+                  <li>• Frais de retrait : 10% </li>
                   <li>• Délai de traitement : 24h maximum</li>
                   <li>• Vérification d'identité requise pour les gros montants</li>
                 </ul>
@@ -340,12 +385,13 @@ export const Withdraw = () => {
                 <Input
                   id="amount"
                   type="number"
-                  placeholder="Ex: 50000"
+                  placeholder="Ex: 3000"
                   className="text-sm"
                   value={withdrawAmount}
                   onChange={(e) => setWithdrawAmount(e.target.value)}
-                  min="5000"
+                  min="3000"
                   max={user.balance}
+                  step="500"
                 />
                 <p className="text-xs text-muted-foreground">
                   Maximum disponible : {formatCurrency(user.balance)}
@@ -410,7 +456,7 @@ export const Withdraw = () => {
                 className="w-full text-sm" 
                 size="sm"
                 onClick={handleWithdraw}
-                disabled={isSubmitting || !withdrawAmount || !withdrawMethod || !paymentDetails || amount > user.balance || amount < 5000}
+                disabled={isSubmitting || !withdrawAmount || !withdrawMethod || !paymentDetails || amount > user.balance || amount < 3000}
               >
                 {isSubmitting ? (
                   <>

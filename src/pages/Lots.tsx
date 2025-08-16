@@ -11,10 +11,17 @@ import { TrendingUp, Gem, Star, Crown, Zap } from "lucide-react";
 
 const lotIcons = {
   Topaze: Zap,
+  Grenat: Gem,
   Rubis: TrendingUp,
   Saphir: Star,
   Émeraude: Gem,
   Diamant: Crown,
+  Améthyste: Gem,
+  Onyx: Gem,
+  Moonstone: Gem,
+  Perle: Gem,
+  Opale: Gem,
+  Tourmaline: Gem,
 };
 
 // Fonction utilitaire pour vérifier si un lot peut être acheté
@@ -55,10 +62,17 @@ const canPurchaseLot = (lot: InvestmentLot, user: User, activeLot: InvestmentLot
 const getLotStyles = (lotName: string) => {
   const styles = {
     Topaze: { bg: 'bg-yellow-100 dark:bg-yellow-900/20', icon: 'text-yellow-600 dark:text-yellow-400' },
+    Grenat: { bg: 'bg-red-200 dark:bg-red-900/20', icon: 'text-red-700 dark:text-red-400' },
     Rubis: { bg: 'bg-red-100 dark:bg-red-900/20', icon: 'text-red-600 dark:text-red-400' },
     Saphir: { bg: 'bg-blue-100 dark:bg-blue-900/20', icon: 'text-blue-600 dark:text-blue-400' },
     Émeraude: { bg: 'bg-green-100 dark:bg-green-900/20', icon: 'text-green-600 dark:text-green-400' },
     Diamant: { bg: 'bg-purple-100 dark:bg-purple-900/20', icon: 'text-purple-600 dark:text-purple-400' },
+    Améthyste: { bg: 'bg-purple-200 dark:bg-purple-900/20', icon: 'text-purple-700 dark:text-purple-400' },
+    Onyx: { bg: 'bg-gray-300 dark:bg-gray-900/20', icon: 'text-gray-700 dark:text-gray-400' },
+    Moonstone: { bg: 'bg-blue-50 dark:bg-blue-900/20', icon: 'text-blue-400 dark:text-blue-200' },
+    Perle: { bg: 'bg-gray-100 dark:bg-gray-900/20', icon: 'text-gray-400 dark:text-gray-200' },
+    Opale: { bg: 'bg-pink-100 dark:bg-pink-900/20', icon: 'text-pink-400 dark:text-pink-200' },
+    Tourmaline: { bg: 'bg-green-200 dark:bg-green-900/20', icon: 'text-green-700 dark:text-green-400' },
   };
   return styles[lotName as keyof typeof styles] || { bg: 'bg-gray-100 dark:bg-gray-900/20', icon: 'text-gray-600 dark:text-gray-400' };
 };
@@ -326,10 +340,6 @@ export const Lots = () => {
               <CardDescription className="text-sm sm:text-base text-violet-600 mt-1">Choisissez votre lot d'investissement</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-xs sm:text-sm text-violet-600">Votre solde actuel :</span>
-                <span className="font-semibold text-violet-700 text-sm sm:text-base bg-violet-100 px-2 py-1 rounded-lg">{formatCurrency(user.balance)}</span>
-              </div>
             </CardContent>
           </Card>
           {activeLot ? (
@@ -407,25 +417,38 @@ export const Lots = () => {
             </div>
           )}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
           {lots.filter(lot => Number(lot.active) === 1).map((lot, index) => {
             const IconComponent = lotIcons[lot.name as keyof typeof lotIcons] || TrendingUp;
             const purchaseStatus = canPurchaseLot(lot, user, activeLot);
             const lotStyles = getLotStyles(lot.name);
-            // Déterminer le niveau hiérarchique (1 = plus bas, 5 = plus haut)
             const hierarchyLevel = index + 1;
             const isHighestTier = index === (lots.filter(l => Number(l.active) === 1).length - 1);
+            const isCurrentLot = activeLot && activeLot.id === lot.id;
             const cardClass = [
               'shadow-lg hover:shadow-xl',
               'transition-all',
               'hover:transform hover:scale-105',
-              'border border-violet-200',
+              'border',
               'relative',
-              'bg-gradient-to-br from-white to-violet-50',
-              purchaseStatus.canBuy && !isPurchasing ? 'cursor-pointer hover:border-violet-400 hover:shadow-violet-200' : 'opacity-60',
-              purchaseStatus.reason === 'already_active' ? 'ring-2 ring-violet-400 bg-violet-100' : '',
-              isHighestTier ? 'border-purple-400 ring-2 ring-purple-300' : ''
+              isCurrentLot
+                ? 'ring-2 ring-red-400 bg-gradient-to-br from-red-100 to-red-200 border-red-300'
+                : 'border-violet-200 bg-gradient-to-br from-white to-violet-50',
+              isHighestTier && !isCurrentLot ? 'border-purple-400 ring-2 ring-purple-300' : ''
             ].join(' ');
+
+            // Calcul gain total
+            const totalGain = lot.dailyReturn * lot.duration;
+
+            // Calcul durée restante pour le lot actif
+            let remainingDays = null;
+            if (activeUserLot && activeUserLot.lotId === lot.id && activeUserLot.purchasedAt) {
+              const purchasedDate = new Date(activeUserLot.purchasedAt);
+              const now = new Date();
+              const daysElapsed = Math.floor((now.getTime() - purchasedDate.getTime()) / (1000 * 60 * 60 * 24));
+              remainingDays = Math.max(0, lot.duration - daysElapsed);
+            }
+
             return (
               <Card key={lot.id} className={cardClass}>
                 {/* Badge de niveau hiérarchique */}
@@ -442,8 +465,8 @@ export const Lots = () => {
                   </div>
                 </div>
                 <CardHeader className="text-center p-4 sm:p-6">
-                  <div className={`mx-auto mb-3 sm:mb-4 p-3 sm:p-4 rounded-full w-fit bg-gradient-to-br from-violet-100 to-purple-200 shadow-md`}>
-                    <IconComponent className={`h-6 w-6 sm:h-8 sm:w-8 text-violet-600`} />
+                  <div className={`mx-auto mb-3 sm:mb-4 p-3 sm:p-4 rounded-full w-fit ${lotStyles.bg} shadow-md`}>
+                    <IconComponent className={`h-6 w-6 sm:h-8 sm:w-8 ${lotStyles.icon}`} />
                   </div>
                   <CardTitle className="text-lg sm:text-xl flex items-center justify-center gap-2 text-violet-800">
                     {lot.name}
@@ -465,6 +488,16 @@ export const Lots = () => {
                     </p>
                   </div>
                   <div className="text-center">
+                    <p className="text-xs sm:text-sm text-green-600">Gain total sur la durée</p>
+                    <p className="text-base sm:text-lg font-bold text-green-700">{formatCurrency(totalGain)}</p>
+                  </div>
+                  {remainingDays !== null && (
+                    <div className="text-center">
+                      <p className="text-xs sm:text-sm text-blue-600">Durée restante</p>
+                      <p className="text-base sm:text-lg font-semibold text-blue-700">{remainingDays} jours</p>
+                    </div>
+                  )}
+                  <div className="text-center">
                     <p className="text-xs sm:text-sm text-violet-600">ROI quotidien</p>
                     <p className="text-base sm:text-lg font-semibold text-violet-700">
                       {lot.price > 0 ? ((lot.dailyReturn / lot.price) * 100).toFixed(1) : 0}%
@@ -480,7 +513,7 @@ export const Lots = () => {
                   }}>
                     <DialogTrigger asChild>
                       <Button
-                        className="w-full mt-3 sm:mt-4 text-sm sm:text-base bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white border-0 shadow-lg hover:shadow-xl transition-all"
+                        className={`w-full mt-3 sm:mt-4 text-sm sm:text-base bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white border-0 shadow-lg hover:shadow-xl transition-all ${!purchaseStatus.canBuy || isPurchasing ? 'opacity-60 cursor-not-allowed' : ''}`}
                         size="sm"
                         disabled={!purchaseStatus.canBuy || isPurchasing}
                         onClick={() => {

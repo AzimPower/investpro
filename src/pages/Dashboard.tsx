@@ -413,10 +413,10 @@ export const Dashboard = () => {
     // Validation stricte du numéro international
     const phoneRegex = /^\+[1-9]\d{7,14}$/;
     const cleanedPhone = transferPhone.replace(/\s+/g, '');
-    if (!user || !cleanedPhone || !transferAmount || isNaN(Number(transferAmount)) || Number(transferAmount) < 500 || !phoneRegex.test(cleanedPhone)) {
+    if (!user || !cleanedPhone || !transferAmount || isNaN(Number(transferAmount)) || Number(transferAmount) < 1000 || !phoneRegex.test(cleanedPhone)) {
       toast({
         title: "Erreur",
-        description: "Veuillez remplir tous les champs correctement (montant minimum 500 FCFA, numéro international valide)",
+        description: "Veuillez remplir tous les champs correctement (montant minimum 1000 FCFA, numéro international valide)",
         variant: "destructive",
       });
       return;
@@ -743,13 +743,13 @@ export const Dashboard = () => {
                   {/* Affiche l'aide USSD seulement si méthode et montant sont renseignés */}
                   {depositMethod && depositAmount && Number(depositAmount) >= 1000 && selectedAgent ? (
                     depositMethod.toLowerCase().includes('wave') ? (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                          <span className="font-semibold text-sm text-blue-800">Paiement Wave :</span>
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 space-y-1 text-left">
+                        <div className="flex items-center gap-1">
+                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                          <span className="font-medium text-[10px] sm:text-sm text-blue-800">Paiement Wave :</span>
                         </div>
-                        <div className="bg-white border rounded-md p-2 text-500">
-                          <span className="font-mono text-base font-bold">
+                        <div className="bg-white border rounded-md p-1 sm:p-2 text-left">
+                          <span className="font-mono text-[10px] sm:text-base font-normal leading-tight text-left">
                             1. Ouvrez Wave<br />
                             2. Faites le dépôt au numéro <b>{selectedAgent.agentNumber} sous le nom de {selectedAgent.fullName}</b><br />
                             3. Copiez l'ID de la transaction et collez-le ci-dessous
@@ -848,7 +848,7 @@ export const Dashboard = () => {
                         id="deposit-amount"
                         type="number"
                         min="1000"
-                        step="1"
+                        step="500"
                         inputMode="numeric"
                         pattern="[0-9]*"
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none h-9"
@@ -1070,9 +1070,9 @@ export const Dashboard = () => {
                       type="number"
                       inputMode="numeric"
                       pattern="[0-9]*"
-                      min="500"
-                      step="1"
-                      placeholder="Montant à transférer (minimum 500 FCFA)"
+                      min="1000"
+                      step="500"
+                      placeholder="Montant à transférer (minimum 1000 FCFA)"
                       value={transferAmount}
                       onChange={e => {
                         const value = e.target.value;
@@ -1097,10 +1097,10 @@ export const Dashboard = () => {
                     )}
                   </div>
                   <p className="text-sm text-gray-500 mt-1">
-                    Solde disponible: <span className="font-medium">{formatCurrency(user?.balance || 0)}</span> • Minimum: 500 FCFA
+                    Solde disponible: <span className="font-medium">{formatCurrency(user?.balance || 0)}</span> • Minimum: 1000 FCFA
                   </p>
                   {transferAmount && Number(transferAmount) < 500 && (
-                    <p className="text-sm text-red-500 mt-1">Le montant minimum est de 500 FCFA</p>
+                    <p className="text-sm text-red-500 mt-1">Le montant minimum est de 1000 FCFA</p>
                   )}
                   {transferAmount && Number(transferAmount) > (user?.balance || 0) && (
                     <p className="text-sm text-red-500 mt-1">Montant supérieur à votre solde disponible</p>
@@ -1156,7 +1156,7 @@ export const Dashboard = () => {
                   <Button 
                     className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 h-11 font-medium" 
                     onClick={handleTransfer} 
-                    disabled={isSubmittingTransfer || !transferPhone || !transferAmount || !verifiedUser || Number(transferAmount) < 500}
+                    disabled={isSubmittingTransfer || !transferPhone || !transferAmount || !verifiedUser || Number(transferAmount) < 1000}
                   >
                     {isSubmittingTransfer ? (
                       <div className="flex items-center gap-2">
