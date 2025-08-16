@@ -66,24 +66,25 @@ export function useBackendNotifications(userId: number | null) {
 
 // Hook pour marquer une notification comme lue
 export function useMarkAsRead() {
+  type MarkAsReadArgs = { notificationId: number, userId?: number };
   const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: apiMarkNotificationAsRead,
-    onMutate: async (notificationId) => {
+
+  return useMutation<unknown, unknown, MarkAsReadArgs>({
+    mutationFn: ({ notificationId, userId }) => apiMarkNotificationAsRead(notificationId, userId),
+    onMutate: async ({ notificationId }) => {
       // Mise à jour optimiste immédiate
       queryClient.setQueriesData(
         { queryKey: ['notifications'] },
         (oldData: BackendNotification[] | undefined) => {
-          return oldData?.map(notif => 
-            notif.id === notificationId 
+          return oldData?.map(notif =>
+            notif.id === notificationId
               ? { ...notif, isRead: true, readAt: new Date().toISOString() }
               : notif
           ) || [];
         }
       );
     },
-    onError: (err, notificationId) => {
+    onError: (err, variables) => {
       console.error('Erreur lors du marquage comme lu:', err);
     }
   });
@@ -92,11 +93,10 @@ export function useMarkAsRead() {
 // Hook pour supprimer une notification
 export function useDeleteNotification() {
   const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: apiDeleteNotification,
-    onMutate: async (notificationId) => {
-      // Mise à jour optimiste immédiate
+  type DeleteArgs = { notificationId: number, userId?: number };
+  return useMutation<unknown, unknown, DeleteArgs>({
+    mutationFn: ({ notificationId, userId }) => apiDeleteNotification(notificationId, userId),
+    onMutate: async ({ notificationId }) => {
       queryClient.setQueriesData(
         { queryKey: ['notifications'] },
         (oldData: BackendNotification[] | undefined) => {
@@ -104,7 +104,7 @@ export function useDeleteNotification() {
         }
       );
     },
-    onError: (err, notificationId) => {
+    onError: (err, variables) => {
       console.error('Erreur lors de la suppression:', err);
     }
   });

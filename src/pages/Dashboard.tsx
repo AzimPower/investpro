@@ -1,4 +1,6 @@
+import { isValidPhoneNumber } from 'libphonenumber-js';
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { MuiTelInput } from 'mui-tel-input';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Navigation } from "@/components/Navigation";
@@ -372,14 +374,11 @@ export const Dashboard = () => {
 
   // Fonction pour vérifier l'utilisateur par téléphone
   const verifyUserByPhone = useCallback(async (phone: string) => {
-    if (!phone || !phone.startsWith('+226') || phone.length !== 12) return;
-    
-    // Vérifier le format final : +226 + exactement 8 chiffres
-    if (!/^\+226\d{8}$/.test(phone)) {
+    // Vérification stricte du numéro international
+    if (!isValidPhoneNumber(phone)) {
       setVerifiedUser(null);
       return;
     }
-    
     setIsVerifyingUser(true);
     try {
       const res = await fetch('/backend/transactions.php', {
@@ -390,7 +389,6 @@ export const Dashboard = () => {
           phone: phone
         })
       });
-      
       const result = await res.json();
       if (result.success && result.user) {
         // Vérifier si ce n'est pas le même utilisateur
@@ -408,14 +406,17 @@ export const Dashboard = () => {
     } finally {
       setIsVerifyingUser(false);
     }
-  }, []);
+  }, [user]);
 
   // Fonction de transfert inter-comptes
   const handleTransfer = useCallback(async () => {
-    if (!user || !transferPhone || !transferAmount || isNaN(Number(transferAmount)) || Number(transferAmount) < 500) {
+    // Validation stricte du numéro international
+    const phoneRegex = /^\+[1-9]\d{7,14}$/;
+    const cleanedPhone = transferPhone.replace(/\s+/g, '');
+    if (!user || !cleanedPhone || !transferAmount || isNaN(Number(transferAmount)) || Number(transferAmount) < 500 || !phoneRegex.test(cleanedPhone)) {
       toast({
         title: "Erreur",
-        description: "Veuillez remplir tous les champs correctement (montant minimum 500 FCFA)",
+        description: "Veuillez remplir tous les champs correctement (montant minimum 500 FCFA, numéro international valide)",
         variant: "destructive",
       });
       return;
@@ -470,7 +471,7 @@ export const Dashboard = () => {
         body: JSON.stringify({
           action: 'transfer',
           fromUserId: user.id,
-          toPhone: transferPhone,
+          toPhone: cleanedPhone,
           amount: amount,
           description: transferDescription || `Transfert vers ${transferPhone}`,
         })
@@ -1005,49 +1006,27 @@ export const Dashboard = () => {
                     Numéro de téléphone du destinataire *
                   </Label>
                   <div className="relative">
-                    <div className="flex">
-                      <div className="flex items-center px-3 bg-gray-100 border border-r-0 rounded-l-lg text-sm font-medium text-gray-600">
-                        +226
-                      </div>
-                      <Input
-                        id="transfer-phone"
-                        type="tel"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        placeholder="XX XX XX XX"
-                        value={transferPhone.replace('+226', '')}
-                        onChange={e => {
-                          const value = e.target.value;
-                          // Ne permettre que les chiffres et limiter à 8 caractères
-                          const numericValue = value.replace(/\D/g, '').slice(0, 8);
-                          const fullPhone = numericValue ? `+226${numericValue}` : '';
-                          setTransferPhone(fullPhone);
-                          setVerifiedUser(null);
-                          
-                          // Annuler le timeout précédent
-                          if (phoneVerificationTimeout) {
-                            clearTimeout(phoneVerificationTimeout);
-                          }
-                          
-                          // Vérifier après un délai si on a 8 chiffres
-                          if (numericValue.length === 8) {
-                            const timeoutId = setTimeout(() => {
-                              verifyUserByPhone(fullPhone);
-                            }, 800);
-                            setPhoneVerificationTimeout(timeoutId);
-                          }
-                        }}
-                        onKeyDown={e => {
-                          // Bloquer les caractères non numériques
-                          if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'Home', 'End', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
-                            e.preventDefault();
-                          }
-                        }}
-                        className="text-sm rounded-l-none border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 h-10"
-                        disabled={isSubmittingTransfer}
-                        maxLength={8}
-                      />
-                    </div>
+                    <MuiTelInput
+                      id="transfer-phone"
+                      value={transferPhone}
+                      onChange={phone => {
+                        setTransferPhone(phone);
+                        setVerifiedUser(null);
+                        if (phoneVerificationTimeout) {
+                          clearTimeout(phoneVerificationTimeout);
+                        }
+                        if (isValidPhoneNumber(phone)) {
+                          const timeoutId = setTimeout(() => {
+                            verifyUserByPhone(phone);
+                          }, 800);
+                          setPhoneVerificationTimeout(timeoutId);
+                        }
+                      }}
+                      defaultCountry="BF"
+                      fullWidth
+                      required
+                      disabled={isSubmittingTransfer}
+                    />
                     {isVerifyingUser && (
                       <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
@@ -1075,7 +1054,7 @@ export const Dashboard = () => {
                         <span className="text-sm font-medium">Utilisateur non trouvé</span>
                       </div>
                       <p className="text-sm text-red-600 mt-1">
-                        Aucun compte avec ce numéro. Vérifiez les 8 chiffres
+                        Aucun compte avec ce numéro. Vérifiez que le numéro est correct et existe sur la plateforme.
                       </p>
                     </div>
                   )}

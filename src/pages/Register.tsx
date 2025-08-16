@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { MuiTelInput } from 'mui-tel-input';
+import { isValidPhoneNumber } from 'libphonenumber-js';
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Navigation } from "@/components/Navigation";
@@ -14,7 +16,7 @@ export const Register = () => {
   const [searchParams] = useSearchParams();
   
   const [formData, setFormData] = useState({
-    phone: "",
+  phone: "",
     fullName: "",
     password: "",
     confirmPassword: "",
@@ -46,14 +48,15 @@ export const Register = () => {
     setIsLoading(true);
     try {
       // Validation
-      if (!formData.phone || !formData.fullName || !formData.password) {
+  if (!formData.phone || !formData.fullName || !formData.password) {
         throw new Error("Tous les champs obligatoires doivent être remplis");
       }
       if (!acceptPolicy) {
         throw new Error("Vous devez accepter la politique d'investissement pour continuer");
       }
-      if (formData.phone.length !== 8) {
-        throw new Error("Le numéro de téléphone doit contenir exactement 8 chiffres");
+      // Validation stricte du numéro international
+      if (!isValidPhoneNumber(formData.phone)) {
+        throw new Error("Numéro de téléphone invalide pour le pays sélectionné");
       }
       if (formData.password !== formData.confirmPassword) {
         throw new Error("Les mots de passe ne correspondent pas");
@@ -63,7 +66,7 @@ export const Register = () => {
       }
 
       // Vérifier si le numéro existe déjà - amélioration de la vérification
-      const fullPhoneNumber = `+226${formData.phone}`;
+  const fullPhoneNumber = formData.phone;
       
       try {
         // Récupérer tous les utilisateurs pour vérifier l'unicité du numéro
@@ -82,9 +85,7 @@ export const Register = () => {
             // Vérifier si le numéro (avec ou sans +226) existe déjà
             const phoneExists = allUsers.some(user => {
               const userPhone = String(user.phone || '');
-              return userPhone === formData.phone || 
-                     userPhone === fullPhoneNumber ||
-                     userPhone.replace('+226', '') === formData.phone;
+              return userPhone === fullPhoneNumber;
             });
             
             if (phoneExists) {
@@ -131,7 +132,7 @@ export const Register = () => {
 
       // Créer l'utilisateur via l'API PHP avec le numéro complet
       const result = await apiRegister({
-        phone: fullPhoneNumber, // Envoyer le numéro avec +226
+  phone: fullPhoneNumber, // Envoyer le numéro international
         fullName: formData.fullName,
         password: formData.password,
         referralCode,
@@ -188,26 +189,14 @@ export const Register = () => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="phone">Numéro de téléphone *</Label>
-                  <div className="relative">
-                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground pointer-events-none">
-                      +226
-                    </div>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="XXXXXXXX"
-                      value={formData.phone}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, ''); // Garder seulement les chiffres
-                        if (value.length <= 8) {
-                          setFormData(prev => ({ ...prev, phone: value }));
-                        }
-                      }}
-                      className="pl-16" // Espace pour le préfixe +226
-                      maxLength={8}
-                      required
-                    />
-                  </div>
+                  <MuiTelInput
+                    value={formData.phone}
+                    onChange={phone => setFormData(prev => ({ ...prev, phone }))}
+                    defaultCountry="BF"
+                    fullWidth
+                    required
+                    autoFocus
+                  />
                 </div>
 
                 <div className="space-y-2">

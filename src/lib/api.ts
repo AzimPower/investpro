@@ -39,7 +39,8 @@ export async function apiGetAgentApplications(userId?: number) {
 // src/lib/api.ts
 // Centralise tous les appels à l'API PHP backend avec optimisations
 
-const API_URL = '/backend'; // Adapter si besoin
+//const API_URL = '/backend'; // Adapter si besoin
+const API_URL = 'https://mintcream-cheetah-263111.hostingersite.com/backend'; // Adapter si besoin
 
 // Cache pour éviter les appels redondants
 const cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
@@ -375,12 +376,14 @@ export async function apiGetNotifications(userId: number, useCache: boolean = tr
   return apiCall(`${API_URL}/notifications.php?userId=${userId}`, undefined, useCache, 30000);
 }
 
-export async function apiMarkNotificationAsRead(notificationId: number) {
+export async function apiMarkNotificationAsRead(notificationId: number, userId?: number) {
   // Utiliser notifications.php directement avec JSON dans le body
+  const body: any = { id: notificationId, isRead: true };
+  if (userId !== undefined) body.userId = userId;
   return apiCall(`${API_URL}/notifications.php`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id: notificationId, isRead: true })
+    body: JSON.stringify(body)
   });
 }
 
@@ -392,12 +395,13 @@ export async function apiCreateNotification(userId: number, title: string, messa
   });
 }
 
-export async function apiDeleteNotification(notificationId: number) {
-  // Utiliser notifications.php directement avec JSON dans le body
+export async function apiDeleteNotification(notificationId: number, userId?: number) {
+  const body: any = { id: notificationId };
+  if (userId !== undefined) body.userId = userId;
   return apiCall(`${API_URL}/notifications.php`, {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id: notificationId })
+    body: JSON.stringify(body)
   });
 }
 

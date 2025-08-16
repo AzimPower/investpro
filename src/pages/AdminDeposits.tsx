@@ -37,6 +37,7 @@ export default function AdminDeposits() {
   const [pendingPage, setPendingPage] = useState(1);
   const [processedPage, setProcessedPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [actionPending, setActionPending] = useState<{[id: string]: boolean}>({});
   const pageSize = 5;
   const { toast } = useToast();
 
@@ -156,9 +157,25 @@ export default function AdminDeposits() {
   };
 
   const processDeposit = async (transactionId: string, status: 'approved' | 'rejected', reason?: string) => {
+    // Empêche double clic
+    if (actionPending[transactionId]) return;
+    setActionPending(prev => ({ ...prev, [transactionId]: true }));
     try {
       const transaction = filteredDeposits.find(d => d.id === transactionId);
-      if (!transaction) return;
+      if (!transaction) {
+        setActionPending(prev => ({ ...prev, [transactionId]: false }));
+        return;
+      }
+      // Vérifie que le dépôt est toujours en attente
+      if (transaction.status !== 'pending') {
+        toast({
+          title: "Déjà traité",
+          description: "Ce dépôt a déjà été validé ou annulé.",
+          variant: "destructive"
+        });
+        setActionPending(prev => ({ ...prev, [transactionId]: false }));
+        return;
+      }
 
       await apiUpdateTransaction({
         id: transactionId,
@@ -201,7 +218,6 @@ export default function AdminDeposits() {
       await loadDeposits();
       setSelectedDeposit(null);
       setRejectReason('');
-      
       toast({
         title: status === 'approved' ? "Dépôt approuvé" : "Dépôt rejeté",
         description: `Le dépôt de ${formatAmount(transaction.amount)} a été ${status === 'approved' ? 'approuvé' : 'rejeté'}.`,
@@ -212,6 +228,8 @@ export default function AdminDeposits() {
         description: "Impossible de traiter le dépôt.",
         variant: "destructive"
       });
+    } finally {
+      setActionPending(prev => ({ ...prev, [transactionId]: false }));
     }
   };
 
@@ -386,18 +404,20 @@ export default function AdminDeposits() {
                                   onClick={() => processDeposit(deposit.id, 'approved')}
                                   size="sm"
                                   className="text-xs"
+                                  disabled={!!actionPending[deposit.id]}
                                 >
                                   <CheckCircle className="w-3 h-3 mr-1" />
-                                  Approuver
+                                  {actionPending[deposit.id] ? 'Traitement...' : 'Approuver'}
                                 </Button>
                                 <Button 
                                   onClick={() => processDeposit(deposit.id, 'rejected', rejectReason)}
                                   variant="destructive"
                                   size="sm"
                                   className="text-xs"
+                                  disabled={!!actionPending[deposit.id]}
                                 >
                                   <XCircle className="w-3 h-3 mr-1" />
-                                  Rejeter
+                                  {actionPending[deposit.id] ? 'Traitement...' : 'Rejeter'}
                                 </Button>
                               </div>
                             </div>
@@ -501,17 +521,19 @@ export default function AdminDeposits() {
                                     <Button 
                                       onClick={() => processDeposit(deposit.id, 'approved')}
                                       className="flex-1"
+                                      disabled={!!actionPending[deposit.id]}
                                     >
                                       <CheckCircle className="w-4 h-4 mr-2" />
-                                      Approuver
+                                      {actionPending[deposit.id] ? 'Traitement...' : 'Approuver'}
                                     </Button>
                                     <Button 
                                       onClick={() => processDeposit(deposit.id, 'rejected', rejectReason)}
                                       variant="destructive"
                                       className="flex-1"
+                                      disabled={!!actionPending[deposit.id]}
                                     >
                                       <XCircle className="w-4 h-4 mr-2" />
-                                      Rejeter
+                                      {actionPending[deposit.id] ? 'Traitement...' : 'Rejeter'}
                                     </Button>
                                   </div>
 

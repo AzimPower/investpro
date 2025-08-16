@@ -40,18 +40,18 @@ switch ($method) {
                 }
                 
                 $phone = trim($data['phone']);
-                
-                // Normaliser le numéro de téléphone
-                $normalizedPhone = normalizePhoneNumber($phone);
-                
+                // Supprimer les espaces du numéro reçu
+                $normalizedPhone = str_replace(' ', '', normalizePhoneNumber($phone));
+
                 // Debug: Log des valeurs
                 error_log("DEBUG verify_user - Phone original: $phone");
                 error_log("DEBUG verify_user - Phone normalisé: $normalizedPhone");
-                
+
+                // Comparer en supprimant les espaces du numéro en base
                 $stmt = $pdo->prepare("
                     SELECT id, fullName, phone 
                     FROM users 
-                    WHERE phone = ? AND accountStatus = 'active'
+                    WHERE REPLACE(phone, ' ', '') = ? AND accountStatus = 'active'
                 ");
                 $stmt->execute([$normalizedPhone]);
                 $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -184,11 +184,11 @@ function handleTransfer($pdo, $data) {
         throw new Exception('Le montant doit être positif');
     }
 
-    // Normaliser le numéro de téléphone
-    $normalizedPhone = normalizePhoneNumber($toPhone);
-    
+    // Normaliser le numéro de téléphone et supprimer les espaces
+    $normalizedPhone = str_replace(' ', '', normalizePhoneNumber($toPhone));
+
     $pdo->beginTransaction();
-    
+
     try {
         // Vérifier l'utilisateur expéditeur et son solde
         $stmt = $pdo->prepare("
@@ -198,7 +198,7 @@ function handleTransfer($pdo, $data) {
         ");
         $stmt->execute([$fromUserId]);
         $fromUser = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
         if (!$fromUser) {
             throw new Exception('Utilisateur expéditeur introuvable ou inactif');
         }
@@ -207,15 +207,15 @@ function handleTransfer($pdo, $data) {
             throw new Exception('Solde insuffisant pour effectuer ce transfert');
         }
 
-        // Chercher l'utilisateur destinataire par numéro de téléphone
+        // Chercher l'utilisateur destinataire par numéro de téléphone (sans espaces)
         $stmt = $pdo->prepare("
             SELECT id, phone, fullName 
             FROM users 
-            WHERE phone = ? AND accountStatus = 'active'
+            WHERE REPLACE(phone, ' ', '') = ? AND accountStatus = 'active'
         ");
         $stmt->execute([$normalizedPhone]);
         $toUser = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
         if (!$toUser) {
             throw new Exception('Aucun utilisateur trouvé avec ce numéro de téléphone');
         }
@@ -282,28 +282,6 @@ function handleTransfer($pdo, $data) {
 function normalizePhoneNumber($phone) {
     // Supprimer tous les espaces, tirets et autres caractères non numériques sauf le +
     $phone = preg_replace('/[^\d+]/', '', $phone);
-    
-    // Si le numéro commence par +226, le garder tel quel
-    if (strpos($phone, '+226') === 0) {
-        return $phone;
-    }
-    
-    // Si le numéro commence par 226, ajouter le +
-    if (strpos($phone, '226') === 0) {
-        return '+' . $phone;
-    }
-    
-    // Si le numéro commence par 0, remplacer par +226
-    if (strpos($phone, '0') === 0) {
-        return '+226' . substr($phone, 1);
-    }
-    
-    // Si le numéro fait 8 chiffres (format local), ajouter +226
-    if (strlen($phone) === 8 && is_numeric($phone)) {
-        return '+226' . $phone;
-    }
-    
-    // Sinon, essayer d'ajouter +226 par défaut pour le Burkina Faso
-    return '+226' . $phone;
+    return $phone;
 }
 ?>

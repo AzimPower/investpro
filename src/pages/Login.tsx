@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { MuiTelInput } from 'mui-tel-input';
+import { isValidPhoneNumber } from 'libphonenumber-js';
 import { Label } from "@/components/ui/label";
 import { Navigation } from "@/components/Navigation";
 import { useNavigate, Link } from "react-router-dom";
@@ -12,7 +14,7 @@ import { Eye, EyeOff, LogIn } from "lucide-react";
 
 export const Login = () => {
   const [formData, setFormData] = useState({
-    phone: "",
+  phone: "",
     password: ""
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -29,12 +31,12 @@ export const Login = () => {
       if (!formData.phone || !formData.password) {
         throw new Error("Veuillez remplir tous les champs");
       }
-      if (formData.phone.length !== 8) {
-        throw new Error("Le numéro de téléphone doit contenir exactement 8 chiffres");
+      // Validation du numéro international
+    // Validation stricte du numéro international
+    if (!isValidPhoneNumber(formData.phone)) {
+        throw new Error("Veuillez entrer un numéro de téléphone international valide");
       }
-      
-      // Ajouter le préfixe +226 pour la connexion
-      const fullPhoneNumber = `+226${formData.phone}`;
+      const fullPhoneNumber = formData.phone;
       const result = await apiLogin(fullPhoneNumber, formData.password);
       
       if (!result.success || !result.user) {
@@ -105,26 +107,14 @@ export const Login = () => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="phone">Numéro de téléphone</Label>
-                  <div className="relative">
-                    <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground pointer-events-none">
-                      +226
-                    </div>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="XXXXXXXX"
+                    <MuiTelInput
                       value={formData.phone}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, ''); // Garder seulement les chiffres
-                        if (value.length <= 8) {
-                          setFormData(prev => ({ ...prev, phone: value }));
-                        }
-                      }}
-                      className="pl-16" // Espace pour le préfixe +226
-                      maxLength={8}
+                      onChange={phone => setFormData(prev => ({ ...prev, phone }))}
+                      defaultCountry="BF"
+                      fullWidth
                       required
+                      autoFocus
                     />
-                  </div>
                 </div>
 
                 <div className="space-y-2">

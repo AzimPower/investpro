@@ -29,8 +29,9 @@ switch ($method) {
             $user = $stmt->fetch();
             echo json_encode($user);
         } elseif ($phone) {
-            $stmt = $pdo->prepare('SELECT * FROM users WHERE phone = ?');
-            $stmt->execute([$phone]);
+            $normalizedPhone = str_replace(' ', '', $phone);
+            $stmt = $pdo->prepare('SELECT * FROM users WHERE REPLACE(phone, " ", "") = ?');
+            $stmt->execute([$normalizedPhone]);
             $user = $stmt->fetch();
             echo json_encode($user);
         } elseif ($email) {
@@ -59,8 +60,9 @@ switch ($method) {
         $data = json_decode(file_get_contents('php://input'), true);
         if (isset($data['action']) && $data['action'] === 'login') {
             // Connexion utilisateur
-            $stmt = $pdo->prepare('SELECT * FROM users WHERE phone = ?');
-            $stmt->execute([$data['phone']]);
+            $normalizedPhone = str_replace(' ', '', $data['phone']);
+            $stmt = $pdo->prepare('SELECT * FROM users WHERE REPLACE(phone, " ", "") = ?');
+            $stmt->execute([$normalizedPhone]);
             $user = $stmt->fetch();
             if ($user && verifyPassword($data['password'], $user['password'])) {
                 unset($user['password']);
@@ -101,6 +103,10 @@ switch ($method) {
         } else {
             // Inscription utilisateur
             try {
+                // Validation du numéro international (simple regex)
+                if (!isset($data['phone']) || !preg_match('/^\+[1-9]\d{7,14}$/', $data['phone'])) {
+                    throw new Exception('Numéro de téléphone international invalide');
+                }
                 $stmt = $pdo->prepare('INSERT INTO users (fullName, phone, email, password, role, balance, totalEarned, referralCode, referredBy, accountStatus, agentNumber, operator) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
                 $stmt->execute([
                     $data['fullName'],

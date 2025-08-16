@@ -68,21 +68,29 @@ function handleGet($pathParts) {
             return;
         }
         
-        // Récupérer les notifications de l'utilisateur
+        // Récupérer toutes les notifications (perso + globales non supprimées)
         $stmt = $pdo->prepare("
-            SELECT id, userId, title, message, type, category, isRead, 
-                   relatedId, createdAt, readAt 
-            FROM notifications 
-            WHERE userId = ? 
-            ORDER BY createdAt DESC 
+            SELECT n.id, n.userId, n.title, n.message, n.type, n.category, n.isRead,
+                   n.relatedId, n.createdAt, n.readAt,
+                   nus.isRead AS userIsRead, nus.isDeleted AS userIsDeleted, nus.readAt AS userReadAt, nus.deletedAt AS userDeletedAt
+            FROM notifications n
+            LEFT JOIN notifications_user_status nus ON nus.notificationId = n.id AND nus.userId = ?
+            WHERE (n.userId = ? OR n.userId = 0)
+              AND (n.userId != 0 OR nus.isDeleted IS NULL OR nus.isDeleted = 0)
+            ORDER BY n.createdAt DESC
             LIMIT 50
         ");
-        $stmt->execute([$userId]);
+        $stmt->execute([$userId, $userId]);
         $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Convertir isRead en boolean pour la compatibilité frontend
         foreach ($notifications as &$notification) {
-            $notification['isRead'] = (bool)$notification['isRead'];
+            // Pour les globales, isRead = userIsRead sinon notification['isRead']
+            if ($notification['userId'] == 0) {
+                $notification['isRead'] = (bool)$notification['userIsRead'];
+                $notification['readAt'] = $notification['userReadAt'];
+            } else {
+                $notification['isRead'] = (bool)$notification['isRead'];
+            }
         }
         
         echo json_encode($notifications);
@@ -207,16 +215,27 @@ function handlePut($pathParts) {
         // Marquer une notification spécifique comme lue
         if (isset($input['id']) && isset($input['isRead']) && $input['isRead']) {
             $notificationId = intval($input['id']);
-            
-            $stmt = $pdo->prepare("
-                UPDATE notifications 
-                SET isRead = 1, readAt = NOW() 
-                WHERE id = ?
-            ");
+            $stmt = $pdo->prepare("SELECT userId FROM notifications WHERE id = ? LIMIT 1");
             $stmt->execute([$notificationId]);
-            
-            echo json_encode(['success' => true]);
-            return;
+            $notif = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($notif && $notif['userId'] == 0 && isset($input['userId'])) {
+                // Marquer comme lu pour cet utilisateur (notifications_user_status)
+                $userId = intval($input['userId']);
+                $stmt = $pdo->prepare("INSERT INTO notifications_user_status (notificationId, userId, isRead, readAt) VALUES (?, ?, 1, NOW()) ON DUPLICATE KEY UPDATE isRead = 1, readAt = NOW()");
+                $stmt->execute([$notificationId, $userId]);
+                echo json_encode(['success' => true, 'global' => true]);
+                return;
+            } else {
+                // Marquer comme lu classique
+                $stmt = $pdo->prepare("
+                    UPDATE notifications 
+                    SET isRead = 1, readAt = NOW() 
+                    WHERE id = ?
+                ");
+                $stmt->execute([$notificationId]);
+                echo json_encode(['success' => true, 'global' => false]);
+                return;
+            }
         }
         
         // Marquer toutes les notifications d'un utilisateur comme lues
@@ -270,12 +289,24 @@ function handleDelete($pathParts) {
     // Gestion des anciennes méthodes avec JSON dans le body
     if ($input && isset($input['id'])) {
         $notificationId = intval($input['id']);
-        
-        $stmt = $pdo->prepare("DELETE FROM notifications WHERE id = ?");
+        // Vérifier si la notification est globale
+        $stmt = $pdo->prepare("SELECT userId FROM notifications WHERE id = ? LIMIT 1");
         $stmt->execute([$notificationId]);
-        
-        echo json_encode(['success' => true]);
-        return;
+        $notif = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($notif && $notif['userId'] == 0 && isset($input['userId'])) {
+            // Marquer comme supprimée pour cet utilisateur (notifications_user_status)
+            $userId = intval($input['userId']);
+            $stmt = $pdo->prepare("INSERT INTO notifications_user_status (notificationId, userId, isDeleted, deletedAt) VALUES (?, ?, 1, NOW()) ON DUPLICATE KEY UPDATE isDeleted = 1, deletedAt = NOW()");
+            $stmt->execute([$notificationId, $userId]);
+            echo json_encode(['success' => true, 'global' => true]);
+            return;
+        } else {
+            // Supprimer classique
+            $stmt = $pdo->prepare("DELETE FROM notifications WHERE id = ?");
+            $stmt->execute([$notificationId]);
+            echo json_encode(['success' => true, 'global' => false]);
+            return;
+        }
     }
     
     // Gestion pour supprimer toutes les notifications d'un utilisateur via JSON

@@ -53,9 +53,10 @@ export function SendNotificationDialog({ open, onOpenChange }: SendNotificationD
     setLoading(true);
     setResult('');
     try {
+      let ok = false;
       if (userId === 'all') {
         // Notification globale (userId: 0)
-        const ok = await notificationManager.createNotification(
+        ok = await notificationManager.createNotification(
           0,
           title,
           message,
@@ -66,7 +67,7 @@ export function SendNotificationDialog({ open, onOpenChange }: SendNotificationD
         setResult(ok ? 'Notification globale envoyée à tous les utilisateurs.' : 'Erreur lors de l\'envoi.');
       } else {
         // Notif à un user précis
-        const ok = await notificationManager.createNotification(
+        ok = await notificationManager.createNotification(
           Number(userId),
           title,
           message,
@@ -74,6 +75,12 @@ export function SendNotificationDialog({ open, onOpenChange }: SendNotificationD
           category
         );
         setResult(ok ? 'Notification envoyée avec succès.' : 'Erreur lors de l\'envoi.');
+      }
+      if (ok) {
+        // Fermer le dialogue après succès
+        setTimeout(() => {
+          onOpenChange(false);
+        }, 700); // délai pour afficher le message de succès
       }
     } catch (err) {
       setResult('Erreur lors de l\'envoi.');

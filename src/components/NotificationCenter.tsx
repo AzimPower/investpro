@@ -49,8 +49,16 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
     updateSettings,
   } = useNotifications();
 
+  // Filtrer les notifications selon la règle demandée
+  const filteredNotifications = backendNotifications.filter((notification: any) => {
+    // Afficher à tout le monde si userId = 0
+    if (notification.userId === 0) return true;
+    // Sinon, seulement pour le user courant
+    return notification.userId === currentUserId;
+  });
+
   // Calculer le nombre de notifications non lues
-  const unreadCount = backendNotifications.filter((n: any) => !n.isRead).length;
+  const unreadCount = filteredNotifications.filter((n: any) => !n.isRead).length;
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -95,8 +103,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
   const handleDeleteNotification = async (notificationId: number) => {
     setDeletingNotifications(prev => new Set(prev).add(notificationId));
     try {
-      await deleteNotificationMutation.mutateAsync(notificationId);
-      // Actualiser les données après suppression
+      await deleteNotificationMutation.mutateAsync({ notificationId, userId: currentUserId });
       await forceRefresh();
     } catch (error) {
       console.error('Erreur lors de la suppression:', error);
@@ -112,7 +119,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
   const handleMarkAsRead = async (notificationId: number) => {
     setMarkingAsRead(prev => new Set(prev).add(notificationId));
     try {
-      await markAsReadMutation.mutateAsync(notificationId);
+      await markAsReadMutation.mutateAsync({ notificationId, userId: currentUserId });
       // Actualiser les données après marquage
       await forceRefresh();
     } catch (error) {
@@ -298,7 +305,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
                   <p>Chargement...</p>
                 </div>
-              ) : backendNotifications.length === 0 ? (
+              ) : filteredNotifications.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>Aucune notification</p>
@@ -307,7 +314,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
                 <>
                   <ScrollArea className="h-96">
                     <div className="space-y-1 p-4">
-                      {backendNotifications.map((notification: any) => (
+                      {filteredNotifications.map((notification: any) => (
                         <div
                           key={notification.id}
                           className={`group p-3 rounded-lg border transition-colors hover:bg-muted/50 cursor-pointer ${
@@ -326,6 +333,10 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
                                 <h4 className={`text-sm font-medium ${!notification.isRead ? 'text-foreground' : 'text-muted-foreground'}`}>
                                   {notification.title}
                                 </h4>
+                                {/* Indicateur lu/non lu pour globales */}
+                                {notification.userId === 0 && (
+                                  <span className={`ml-2 text-xs ${notification.isRead ? 'text-green-600' : 'text-blue-600'}`}>{notification.isRead ? 'Lu' : 'Non lu'}</span>
+                                )}
                                 <div className="flex items-center gap-1">
                                   {notification.category && (
                                     <Badge variant="secondary" className={`text-xs ${getCategoryColor(notification.category)}`}>
@@ -372,7 +383,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
                                       <AlertDialogHeader>
                                         <AlertDialogTitle>Supprimer la notification</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                          Êtes-vous sûr de vouloir supprimer cette notification ? Cette action est irréversible.
+                                          Cette action supprimera la notification pour vous uniquement.
                                         </AlertDialogDescription>
                                       </AlertDialogHeader>
                                       <AlertDialogFooter>

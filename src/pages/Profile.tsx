@@ -363,11 +363,11 @@ export const Profile = () => {
                       <div className="space-y-2">
                         <Label htmlFor="agentNumber" className="text-xs sm:text-sm">Numéro d'agent (téléphone agent)</Label>
                         <Input
-                          id="agentNumber"
-                          className="text-sm"
-                          value={isEditing ? editedUser.agentNumber || '' : user.agentNumber || ''}
-                          onChange={(e) => setEditedUser({ ...editedUser, agentNumber: e.target.value })}
-                          disabled={!isEditing}
+                            id="agentNumber"
+                            className="text-sm"
+                            value={user.agentNumber || ''}
+                            readOnly
+                            disabled
                         />
                       </div>
                     )}

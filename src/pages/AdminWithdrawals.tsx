@@ -62,6 +62,7 @@ export default function AdminWithdrawals() {
   const [pendingPage, setPendingPage] = useState(1);
   const [processedPage, setProcessedPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [actionPending, setActionPending] = useState<{[id: string]: boolean}>({});
   const pageSize = 5;
   const { toast } = useToast();
   const notifyManager = useNotificationManager();
@@ -179,9 +180,24 @@ export default function AdminWithdrawals() {
   };
 
   const processWithdrawal = async (transactionId: string, status: 'approved' | 'rejected', reason?: string) => {
+    if (actionPending[transactionId]) return;
+    setActionPending(prev => ({ ...prev, [transactionId]: true }));
     try {
       const transaction = filteredWithdrawals.find(w => w.id === transactionId);
-      if (!transaction) return;
+      if (!transaction) {
+        setActionPending(prev => ({ ...prev, [transactionId]: false }));
+        return;
+      }
+      // Vérifie que le retrait est toujours en attente
+      if (transaction.status !== 'pending') {
+        toast({
+          title: "Déjà traité",
+          description: "Ce retrait a déjà été validé ou annulé.",
+          variant: "destructive"
+        });
+        setActionPending(prev => ({ ...prev, [transactionId]: false }));
+        return;
+      }
 
       // Renseigner agentId et agentNumber depuis l'utilisateur connecté (admin/agent)
       const agentId = currentUser?.id ? String(currentUser.id) : undefined;
@@ -220,7 +236,6 @@ export default function AdminWithdrawals() {
       await loadWithdrawals();
       setSelectedWithdrawal(null);
       setRejectReason('');
-      
       toast({
         title: status === 'approved' ? "Retrait approuvé" : "Retrait rejeté",
         description: `Le retrait de ${formatAmount(transaction.amount)} a été ${status === 'approved' ? 'approuvé' : 'rejeté'}.`,
@@ -231,6 +246,8 @@ export default function AdminWithdrawals() {
         description: "Impossible de traiter le retrait.",
         variant: "destructive"
       });
+    } finally {
+      setActionPending(prev => ({ ...prev, [transactionId]: false }));
     }
   };
 
@@ -410,18 +427,20 @@ export default function AdminWithdrawals() {
                                   onClick={() => processWithdrawal(withdrawal.id, 'approved')}
                                   size="sm"
                                   className="text-xs"
+                                  disabled={!!actionPending[withdrawal.id]}
                                 >
                                   <CheckCircle className="w-3 h-3 mr-1" />
-                                  Approuver
+                                  {actionPending[withdrawal.id] ? 'Traitement...' : 'Approuver'}
                                 </Button>
                                 <Button 
                                   onClick={() => processWithdrawal(withdrawal.id, 'rejected', rejectReason)}
                                   variant="destructive"
                                   size="sm"
                                   className="text-xs"
+                                  disabled={!!actionPending[withdrawal.id]}
                                 >
                                   <XCircle className="w-3 h-3 mr-1" />
-                                  Rejeter
+                                  {actionPending[withdrawal.id] ? 'Traitement...' : 'Rejeter'}
                                 </Button>
                               </div>
                             </div>
@@ -518,17 +537,19 @@ export default function AdminWithdrawals() {
                                   <Button 
                                     onClick={() => processWithdrawal(withdrawal.id, 'approved')}
                                     className="flex-1"
+                                    disabled={!!actionPending[withdrawal.id]}
                                   >
                                     <CheckCircle className="w-4 h-4 mr-2" />
-                                    Approuver
+                                    {actionPending[withdrawal.id] ? 'Traitement...' : 'Approuver'}
                                   </Button>
                                   <Button 
                                     onClick={() => processWithdrawal(withdrawal.id, 'rejected', rejectReason)}
                                     variant="destructive"
                                     className="flex-1"
+                                    disabled={!!actionPending[withdrawal.id]}
                                   >
                                     <XCircle className="w-4 h-4 mr-2" />
-                                    Rejeter
+                                    {actionPending[withdrawal.id] ? 'Traitement...' : 'Rejeter'}
                                   </Button>
                                 </div>
 

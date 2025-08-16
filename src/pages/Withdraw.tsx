@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import { isValidPhoneNumber } from 'libphonenumber-js';
+import { MuiTelInput } from 'mui-tel-input';
 import { ArrowUpRight, Wallet, Clock, AlertCircle, CheckCircle } from "lucide-react";
 
 export const Withdraw = () => {
@@ -97,7 +99,7 @@ export const Withdraw = () => {
       });
       return;
     }
-    
+
     const amount = parseFloat(withdrawAmount);
     if (isNaN(amount) || amount <= 0) {
       toast({
@@ -107,7 +109,7 @@ export const Withdraw = () => {
       });
       return;
     }
-    
+
     if (amount > user.balance) {
       toast({
         title: "Solde insuffisant",
@@ -116,7 +118,7 @@ export const Withdraw = () => {
       });
       return;
     }
-    
+
     const minWithdraw = 5000;
     if (amount < minWithdraw) {
       toast({
@@ -126,7 +128,23 @@ export const Withdraw = () => {
       });
       return;
     }
-    
+
+    // Nettoyer le numéro international si la méthode est mobile money
+    let cleanedDetails = paymentDetails.replace(/\s+/g, '');
+    if (withdrawMethod.includes('moov') || withdrawMethod.includes('orange') || withdrawMethod.includes('wave')) {
+      if (!isValidPhoneNumber(cleanedDetails)) {
+        toast({
+          title: "Numéro invalide",
+          description: "Veuillez saisir un numéro de téléphone international valide (ex: +22673254655)",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Calculer le montant net à envoyer dans la transaction
+    const netAmount = getNetAmount(amount);
+
     setIsSubmitting(true);
     try {
       // Débiter le solde utilisateur immédiatement via l'API PHP backend
@@ -155,11 +173,11 @@ export const Withdraw = () => {
         body: JSON.stringify({
           userId: user.id,
           type: 'withdrawal',
-          amount: amount,
+          amount: netAmount,
           status: 'pending',
           description: `Demande de retrait via ${withdrawMethod}`,
           paymentMethod: withdrawMethod,
-          paymentProof: paymentDetails,
+          paymentProof: cleanedDetails,
         })
       });
       
@@ -351,22 +369,22 @@ export const Withdraw = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="details" className="text-xs sm:text-sm">Informations de paiement</Label>
-                <Textarea
-                  id="details"
-                  placeholder={
-                    withdrawMethod.includes('bank') || withdrawMethod.includes('virement')
-                      ? "Nom de la banque, numéro de compte, nom du titulaire..."
-                      : "Numéro de téléphone ou identifiant du compte..."
-                  }
-                  className="text-sm"
+                <Label htmlFor="reception-phone" className="text-xs sm:text-sm">Numéro de réception</Label>
+                <MuiTelInput
+                  id="reception-phone"
                   value={paymentDetails}
-                  onChange={(e) => setPaymentDetails(e.target.value)}
-                  rows={3}
+                  onChange={setPaymentDetails}
+                  defaultCountry="BF"
+                  fullWidth
+                  required
+                  autoFocus
                 />
                 <p className="text-xs text-muted-foreground">
-                  Assurez-vous que les informations sont exactes pour éviter tout retard
+                  Saisissez le numéro de téléphone international du compte à créditer
                 </p>
+                {paymentDetails && !isValidPhoneNumber(paymentDetails.replace(/\s+/g, '')) && (
+                  <p className="text-xs text-red-500">Numéro international invalide</p>
+                )}
               </div>
 
               {amount > 0 && (
