@@ -740,7 +740,7 @@ export const Dashboard = () => {
                   <DialogHeader className="flex-shrink-0 pb-2">
                     <DialogTitle className="text-base font-semibold text-gray-800">Recharger mon compte</DialogTitle>
                     <DialogDescription className="text-sm leading-relaxed">
-                      {user?.role === 'agent' ? (
+                      {false ? (
                         <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                           <div className="flex items-center gap-2 text-red-700">
                             <div className="w-2 h-2 bg-red-500 rounded-full"></div>
@@ -829,7 +829,7 @@ export const Dashboard = () => {
                         <Label htmlFor="deposit-method" className="text-sm font-medium text-gray-700 block mb-2">
                           Méthode de paiement *
                         </Label>
-                        <Select value={depositMethod} onValueChange={setDepositMethod} disabled={paymentMethods.length === 0 || isSubmittingDeposit || user?.role === 'agent'}>
+                        <Select value={depositMethod} onValueChange={setDepositMethod} disabled={paymentMethods.length === 0 || isSubmittingDeposit}>
                           <SelectTrigger className="text-sm h-9 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
                             <SelectValue placeholder={paymentMethods.length === 0 ? "Aucune méthode disponible" : "Sélectionnez une méthode"} />
                           </SelectTrigger>
@@ -872,7 +872,7 @@ export const Dashboard = () => {
                                 e.preventDefault();
                               }
                             }}
-                            disabled={isSubmittingDeposit || !depositMethod || user?.role === 'agent'}
+                            disabled={isSubmittingDeposit || !depositMethod}
                           />
                           {depositAmount && Number(depositAmount) >= 1000 && (
                             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-600">
@@ -895,7 +895,7 @@ export const Dashboard = () => {
                           value={depositProof}
                           onChange={e => setDepositProof(e.target.value)}
                           className="text-sm min-h-[60px] resize-none border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                          disabled={isSubmittingDeposit || user?.role === 'agent'}
+                          disabled={isSubmittingDeposit}
                         />
                         <p className="text-xs text-gray-500 mt-1">
                           Exemple : "Transaction réussie ID: PP250803.1806.56541381"
@@ -951,7 +951,7 @@ export const Dashboard = () => {
                       <Button 
                         className="flex-1 h-9 text-sm bg-blue-600 hover:bg-blue-700 text-white" 
                         onClick={handleDeposit} 
-                        disabled={paymentMethods.length === 0 || isSubmittingDeposit || !selectedAgent || !depositMethod || !depositProof || !depositAmount || Number(depositAmount) < 1000 || user?.role === 'agent'}
+                        disabled={paymentMethods.length === 0 || isSubmittingDeposit || !selectedAgent || !depositMethod || !depositProof || !depositAmount || Number(depositAmount) < 1000}
                       >
                         {isSubmittingDeposit ? (
                           <div className="flex items-center gap-2">
@@ -1214,7 +1214,7 @@ export const Dashboard = () => {
           </Card>
 
           {/* Support */}
-          <Card className="shadow-card hover:shadow-lg transition-all cursor-pointer bg-gradient-to-br from-violet-50 to-purple-100 border-violet-200" onClick={() => window.open('https://t.me/takenflow_support', '_blank')}>
+          <Card className="shadow-card hover:shadow-lg transition-all cursor-pointer bg-gradient-to-br from-violet-50 to-purple-100 border-violet-200" onClick={() => window.open('https://t.me/+RmlwXhX1lHswMWE0', '_blank')}>
             <CardContent className="p-3 sm:p-4 text-center">
               <div className="mx-auto mb-2 p-2 bg-gradient-to-br from-violet-500 to-purple-600 rounded-full w-fit shadow-md">
                 <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />

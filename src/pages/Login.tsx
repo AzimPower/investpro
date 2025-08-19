@@ -145,7 +145,7 @@ export const Login = () => {
                 </div>
 
                 <div className="text-right">
-                  <Link to="/forgot-password" className="text-sm text-primary hover:underline">
+                  <Link to="https://t.me/+RmlwXhX1lHswMWE0" className="text-sm text-primary hover:underline">
                     Mot de passe oublié ?
                   </Link>
                 </div>

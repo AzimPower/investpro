@@ -256,11 +256,11 @@ export const Profile = () => {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs sm:text-sm text-muted-foreground">Membre depuis</span>
-                  <span className="text-xs sm:text-sm">{new Date(user.createdAt).toLocaleDateString('fr-FR', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: '2-digit'
-                  })}</span>
+                    <span className="text-xs sm:text-sm">{new Date(user.createdAt).toLocaleDateString('fr-FR', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric'
+                    })}</span>
                 </div>
                 <Separator />
                 <div className="space-y-2">
