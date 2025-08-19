@@ -759,7 +759,7 @@ export const Dashboard = () => {
                               <div className="bg-white border rounded-md p-2 text-left">
                                 <ol className="list-decimal list-inside text-xs sm:text-sm font-mono text-blue-800 space-y-1">
                                   <li>Ouvrez Wave</li>
-                                  <li>Faites le dépôt au numéro <b className="font-semibold text-blue-900">{selectedAgent.agentNumber}</b> <span className="text-xs">sous le nom de</span> <b className="font-semibold text-blue-900">{selectedAgent.fullName}</b></li>
+                                  <li>Faites le dépôt de <b className="font-semibold text-blue-900">{formatCurrency(Number(depositAmount))}</b> au numéro <b className="font-semibold text-blue-900">{selectedAgent.agentNumber}</b> <span className="text-xs">sous le nom de</span> <b className="font-semibold text-blue-900">{selectedAgent.fullName}</b></li>
                                   <li>Copiez l'ID de la transaction et collez-le ci-dessous</li>
                                 </ol>
                               </div>
