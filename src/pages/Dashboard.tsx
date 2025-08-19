@@ -715,462 +715,481 @@ export const Dashboard = () => {
           </Card>
 
           {/* Recharger mon compte */}
-          <Dialog open={isDepositDialogOpen} onOpenChange={(open) => {
-            if (!isSubmittingDeposit) {
-              setIsDepositDialogOpen(open);
-              if (!open) {
-                setDepositMethod("");
-                setDepositProof("");
-                setDepositAmount("");
-              }
-            }
-          }}>
-            <DialogTrigger asChild>
-              <Card className="shadow-card hover:shadow-lg transition-all cursor-pointer bg-gradient-to-br from-blue-50 to-cyan-100 border-blue-200">
-                <CardContent className="p-3 sm:p-4 text-center">
-                  <div className="mx-auto mb-2 p-2 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-full w-fit shadow-md">
-                    <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                  </div>
-                  <h3 className="text-xs sm:text-sm font-semibold mb-1 text-blue-700">Recharger</h3>
-                  <p className="text-xs text-blue-600 hidden sm:block">Ajouter fonds</p>
-                </CardContent>
-              </Card>
-            </DialogTrigger>
-            <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
-              <DialogHeader className="flex-shrink-0 pb-2">
-                <DialogTitle className="text-base font-semibold text-gray-800">Recharger mon compte</DialogTitle>
-                <DialogDescription className="text-sm leading-relaxed">
-                  {/* Affiche l'aide USSD seulement si méthode et montant sont renseignés */}
-                  {depositMethod && depositAmount && Number(depositAmount) >= 1000 && selectedAgent ? (
-                    depositMethod.toLowerCase().includes('wave') ? (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 space-y-1 text-left">
-                        <div className="flex items-center gap-1">
-                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                          <span className="font-medium text-[10px] sm:text-sm text-blue-800">Paiement Wave :</span>
-                        </div>
-                        <div className="bg-white border rounded-md p-1 sm:p-2 text-left">
-                          <span className="font-mono text-[10px] sm:text-base font-normal leading-tight text-left">
-                            1. Ouvrez Wave<br />
-                            2. Faites le dépôt au numéro <b>{selectedAgent.agentNumber} sous le nom de {selectedAgent.fullName}</b><br />
-                            3. Copiez l'ID de la transaction et collez-le ci-dessous
-                          </span>
-                        </div>
+              <Dialog open={isDepositDialogOpen} onOpenChange={(open) => {
+                if (!isSubmittingDeposit) {
+                  setIsDepositDialogOpen(open);
+                  if (!open) {
+                    setDepositMethod("");
+                    setDepositProof("");
+                    setDepositAmount("");
+                  }
+                }
+              }}>
+                <DialogTrigger asChild>
+                  <Card className="shadow-card hover:shadow-lg transition-all cursor-pointer bg-gradient-to-br from-blue-50 to-cyan-100 border-blue-200">
+                    <CardContent className="p-3 sm:p-4 text-center">
+                      <div className="mx-auto mb-2 p-2 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-full w-fit shadow-md">
+                        <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                       </div>
-                    ) : (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                          <span className="font-semibold text-sm text-blue-800">Code USSD à composer :</span>
-                        </div>
-                        <div className="bg-white border rounded-md p-2">
-                          <span className="font-mono text-base text-blue-700 font-bold">
-                            {(() => {
-                              let ussdPrefix = '*144*2*1*';
-                              if (depositMethod.toLowerCase().includes('moov')) ussdPrefix = '*555*2*1*';
-                              const agentNumber = selectedAgent.agentNumber ? selectedAgent.agentNumber.replace('+226', '') : 'numéro';
-                              return `${ussdPrefix}${agentNumber}*${depositAmount}#`;
-                            })()}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm text-blue-600">
-                            <div>Agent : <span className="font-medium">{selectedAgent.fullName}</span></div>
-                            <div>Montant : <span className="font-medium">{formatCurrency(Number(depositAmount))}</span></div>
+                      <h3 className="text-xs sm:text-sm font-semibold mb-1 text-blue-700">Recharger</h3>
+                      <p className="text-xs text-blue-600 hidden sm:block">Ajouter fonds</p>
+                    </CardContent>
+                  </Card>
+                </DialogTrigger>
+                <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[85vh] flex flex-col overflow-hidden">
+                  <DialogHeader className="flex-shrink-0 pb-2">
+                    <DialogTitle className="text-base font-semibold text-gray-800">Recharger mon compte</DialogTitle>
+                    <DialogDescription className="text-sm leading-relaxed">
+                      {user?.role === 'agent' ? (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                          <div className="flex items-center gap-2 text-red-700">
+                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                            <span className="font-medium">Les agents ne peuvent pas effectuer de dépôt.</span>
                           </div>
-                          <a
-                            href={`tel:${encodeURIComponent((() => {
-                              let ussdPrefix = '*144*2*1*';
-                              if (depositMethod.toLowerCase().includes('moov')) ussdPrefix = '*555*2*1*';
-                              const agentNumber = selectedAgent.agentNumber ? selectedAgent.agentNumber.replace('+226', '') : 'numéro';
-                              return `${ussdPrefix}${agentNumber}*${depositAmount}#`;
-                            })())}`}
-                            className="inline-flex items-center px-2 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition text-sm font-medium"
-                            style={{ textDecoration: 'none' }}
-                          >
-                            📞 Composer
-                          </a>
+                          <p className="text-xs text-red-600 mt-1">Cette opération est réservée aux investisseurs.</p>
+                        </div>
+                      ) : (
+                        depositMethod && depositAmount && Number(depositAmount) >= 1000 && selectedAgent ? (
+                          depositMethod.toLowerCase().includes('wave') ? (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                <span className="font-semibold text-sm text-blue-800">Paiement Wave :</span>
+                              </div>
+                              <div className="bg-white border rounded-md p-2 text-left">
+                                <ol className="list-decimal list-inside text-xs sm:text-sm font-mono text-blue-800 space-y-1">
+                                  <li>Ouvrez Wave</li>
+                                  <li>Faites le dépôt au numéro <b className="font-semibold text-blue-900">{selectedAgent.agentNumber}</b> <span className="text-xs">sous le nom de</span> <b className="font-semibold text-blue-900">{selectedAgent.fullName}</b></li>
+                                  <li>Copiez l'ID de la transaction et collez-le ci-dessous</li>
+                                </ol>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                <span className="font-semibold text-sm text-blue-800">Code USSD à composer :</span>
+                              </div>
+                              <div className="bg-white border rounded-md p-2">
+                                <span className="font-mono text-base text-blue-700 font-bold">
+                                  {(() => {
+                                    let ussdPrefix = '*144*2*1*';
+                                    if (depositMethod.toLowerCase().includes('moov')) ussdPrefix = '*555*2*1*';
+                                    const agentNumber = selectedAgent.agentNumber ? selectedAgent.agentNumber.replace('+226', '').replace(/\s+/g, '') : 'numéro';
+                                    return `${ussdPrefix}${agentNumber}*${depositAmount}#`;
+                                  })()}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <div className="text-sm text-blue-600">
+                                  <div>Agent : <span className="font-medium">{selectedAgent.fullName}</span></div>
+                                  <div>Montant : <span className="font-medium">{formatCurrency(Number(depositAmount))}</span></div>
+                                </div>
+                                <a
+                                  href={`tel:${encodeURIComponent((() => {
+                                    let ussdPrefix = '*144*2*1*';
+                                    if (depositMethod.toLowerCase().includes('moov')) ussdPrefix = '*555*2*1*';
+                                    const agentNumber = selectedAgent.agentNumber ? selectedAgent.agentNumber.replace('+226', '').replace(/\s+/g, '') : 'numéro';
+                                    return `${ussdPrefix}${agentNumber}*${depositAmount}#`;
+                                  })())}`}
+                                  className="inline-flex items-center px-2 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition text-sm font-medium"
+                                  style={{ textDecoration: 'none' }}
+                                >
+                                  📞 Composer
+                                </a>
+                              </div>
+                            </div>
+                          )
+                        ) : !selectedAgent ? (
+                          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                            <div className="flex items-center gap-2 text-orange-700">
+                              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                              <span className="font-medium">
+                                {user?.role === 'agent' ? 
+                                  "Aucun autre agent disponible pour traiter votre demande." :
+                                  "Aucun agent disponible. Réessayez plus tard."
+                                }
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                            <div className="flex items-center gap-2 text-gray-600">
+                              <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                              <span className="text-sm">Remplissez les champs pour obtenir le code USSD.</span>
+                            </div>
+                          </div>
+                        )
+                      )}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="flex-1 overflow-y-auto min-h-0 px-1">
+                    <div className="space-y-3 py-2">
+                      <div>
+                        <Label htmlFor="deposit-method" className="text-sm font-medium text-gray-700 block mb-2">
+                          Méthode de paiement *
+                        </Label>
+                        <Select value={depositMethod} onValueChange={setDepositMethod} disabled={paymentMethods.length === 0 || isSubmittingDeposit || user?.role === 'agent'}>
+                          <SelectTrigger className="text-sm h-9 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                            <SelectValue placeholder={paymentMethods.length === 0 ? "Aucune méthode disponible" : "Sélectionnez une méthode"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {paymentMethods.length === 0 ? (
+                              <div className="px-3 py-2 text-red-600 text-sm">Aucune méthode disponible</div>
+                            ) : (
+                              paymentMethods.map((method, idx) => (
+                                <SelectItem key={idx} value={method} className="text-sm py-2">{method}</SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                        {!depositMethod && (
+                          <p className="text-sm text-gray-500 mt-1">Choisissez d'abord une méthode de paiement</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="deposit-amount" className="text-sm font-medium text-gray-700 block mb-2">
+                          Montant (FCFA) *
+                        </Label>
+                        <div className="relative">
+                          <input
+                            id="deposit-amount"
+                            type="number"
+                            min="1000"
+                            step="500"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none h-9"
+                            placeholder="Montant minimum : 1000 FCFA"
+                            value={depositAmount}
+                            onChange={e => {
+                              const val = e.target.value;
+                              if (/^\d*$/.test(val)) setDepositAmount(val);
+                            }}
+                            onKeyDown={e => {
+                              if (["e", "E", "+", "-", ".", ","].includes(e.key)) {
+                                e.preventDefault();
+                              }
+                            }}
+                            disabled={isSubmittingDeposit || !depositMethod || user?.role === 'agent'}
+                          />
+                          {depositAmount && Number(depositAmount) >= 1000 && (
+                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-600">
+                              ✓
+                            </div>
+                          )}
+                        </div>
+                        {depositAmount && Number(depositAmount) < 1000 && (
+                          <p className="text-sm text-red-500 mt-1">Le montant minimum est de 1000 FCFA</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="deposit-proof" className="text-sm font-medium text-gray-700 block mb-2">
+                          Preuve de paiement *
+                        </Label>
+                        <Textarea
+                          id="deposit-proof"
+                          placeholder="Saisissez l'ID de transaction ou une description du paiement effectué"
+                          value={depositProof}
+                          onChange={e => setDepositProof(e.target.value)}
+                          className="text-sm min-h-[60px] resize-none border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          disabled={isSubmittingDeposit || user?.role === 'agent'}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Exemple : "Transaction réussie ID: PP250803.1806.56541381"
+                        </p>
+                      </div>
+                      
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-2">
+                        <div className="flex items-start gap-2">
+                          <div className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5">⚠️</div>
+                          <div className="text-sm text-amber-800">
+                            <div className="font-medium mb-1">Instructions :</div>
+                            <ul className="space-y-0.5 text-xs">
+                              <li>1. Composez le code USSD ci-dessus</li>
+                              <li>2. Effectuez le paiement vers l'agent</li>
+                              <li>3. Saisissez la preuve dans le champ</li>
+                            </ul>
+                          </div>
                         </div>
                       </div>
-                    )
-                  ) : !selectedAgent ? (
-                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                      <div className="flex items-center gap-2 text-orange-700">
-                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                        <span className="font-medium">
-                          {user?.role === 'agent' ? 
-                            "Aucun autre agent disponible pour traiter votre demande." :
-                            "Aucun agent disponible. Réessayez plus tard."
-                          }
-                        </span>
-                      </div>
                     </div>
-                  ) : (
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                        <span className="text-sm">Remplissez les champs pour obtenir le code USSD.</span>
-                      </div>
-                    </div>
-                  )}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="flex-1 overflow-y-auto min-h-0 px-1">
-                <div className="space-y-3 py-2">
-                  <div>
-                    <Label htmlFor="deposit-method" className="text-sm font-medium text-gray-700 block mb-2">
-                      Méthode de paiement *
-                    </Label>
-                    <Select value={depositMethod} onValueChange={setDepositMethod} disabled={paymentMethods.length === 0 || isSubmittingDeposit}>
-                      <SelectTrigger className="text-sm h-9 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                        <SelectValue placeholder={paymentMethods.length === 0 ? "Aucune méthode disponible" : "Sélectionnez une méthode"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {paymentMethods.length === 0 ? (
-                          <div className="px-3 py-2 text-red-600 text-sm">Aucune méthode disponible</div>
-                        ) : (
-                          paymentMethods.map((method, idx) => (
-                            <SelectItem key={idx} value={method} className="text-sm py-2">{method}</SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    {!depositMethod && (
-                      <p className="text-sm text-gray-500 mt-1">Choisissez d'abord une méthode de paiement</p>
-                    )}
                   </div>
-                  
-                  <div>
-                    <Label htmlFor="deposit-amount" className="text-sm font-medium text-gray-700 block mb-2">
-                      Montant (FCFA) *
-                    </Label>
-                    <div className="relative">
-                      <input
-                        id="deposit-amount"
-                        type="number"
-                        min="1000"
-                        step="500"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none h-9"
-                        placeholder="Montant minimum : 1000 FCFA"
-                        value={depositAmount}
-                        onChange={e => {
-                          const val = e.target.value;
-                          if (/^\d*$/.test(val)) setDepositAmount(val);
-                        }}
-                        onKeyDown={e => {
-                          if (["e", "E", "+", "-", ".", ","].includes(e.key)) {
-                            e.preventDefault();
+                  <div className="flex-shrink-0 pt-3 border-t bg-white">
+                    {!selectedAgent && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-2 mb-3">
+                        <div className="flex items-center gap-2 text-red-700">
+                          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                          <span className="font-medium text-sm">Aucun agent disponible</span>
+                        </div>
+                        <p className="text-xs text-red-600 mt-1">
+                          {user?.role === 'agent' ? 
+                            "Aucun autre agent n'est disponible pour traiter votre demande." :
+                            "Aucun agent n'est disponible actuellement. Veuillez réessayer plus tard."
+                          }
+                        </p>
+                      </div>
+                    )}
+                    <div className="flex gap-3">
+                      <Button
+                        variant="outline"
+                        className="flex-1 h-9 text-sm border-gray-300 hover:bg-gray-50"
+                        disabled={isSubmittingDeposit}
+                        onClick={() => {
+                          if (!isSubmittingDeposit) {
+                            setIsDepositDialogOpen(false);
+                            setDepositMethod("");
+                            setDepositProof("");
+                            setDepositAmount("");
                           }
                         }}
-                        disabled={isSubmittingDeposit || !depositMethod}
-                      />
-                      {depositAmount && Number(depositAmount) >= 1000 && (
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-600">
-                          ✓
+                      >
+                        Annuler
+                      </Button>
+                      <Button 
+                        className="flex-1 h-9 text-sm bg-blue-600 hover:bg-blue-700 text-white" 
+                        onClick={handleDeposit} 
+                        disabled={paymentMethods.length === 0 || isSubmittingDeposit || !selectedAgent || !depositMethod || !depositProof || !depositAmount || Number(depositAmount) < 1000 || user?.role === 'agent'}
+                      >
+                        {isSubmittingDeposit ? (
+                          <div className="flex items-center gap-2">
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                            Envoi...
+                          </div>
+                        ) : (
+                          'Confirmer'
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+          {/* Transfert inter-comptes */}
+              <Dialog open={isTransferDialogOpen} onOpenChange={(open) => {
+                if (!isSubmittingTransfer) {
+                  setIsTransferDialogOpen(open);
+                  if (!open) {
+                    setTransferPhone("");
+                    setTransferAmount("");
+                    setTransferDescription("");
+                    setVerifiedUser(null);
+                    if (phoneVerificationTimeout) {
+                      clearTimeout(phoneVerificationTimeout);
+                      setPhoneVerificationTimeout(null);
+                    }
+                  }
+                }
+              }}>
+                <DialogTrigger asChild>
+                  <Card className="shadow-card hover:shadow-lg transition-all cursor-pointer bg-gradient-to-br from-indigo-50 to-purple-100 border-indigo-200">
+                    <CardContent className="p-3 sm:p-4 text-center">
+                      <div className="mx-auto mb-2 p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full w-fit shadow-md">
+                        <Send className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                      </div>
+                      <h3 className="text-xs sm:text-sm font-semibold mb-1 text-indigo-700">Transférer</h3>
+                      <p className="text-xs text-indigo-600 hidden sm:block">Sans frais</p>
+                    </CardContent>
+                  </Card>
+                </DialogTrigger>
+                <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+                  <DialogHeader className="flex-shrink-0 pb-3">
+                    <DialogTitle className="text-lg font-semibold text-gray-800">Transfert inter-comptes</DialogTitle>
+                    <DialogDescription className="text-sm leading-relaxed">
+                      {user?.role === 'agent' ? (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                          <div className="flex items-center gap-2 text-red-700">
+                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                            <span className="font-medium">Les agents ne peuvent pas effectuer de transfert.</span>
+                          </div>
+                          <p className="text-xs text-red-600 mt-1">Cette opération est réservée aux investisseurs.</p>
+                        </div>
+                      ) : (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <div className="flex items-center gap-2 text-green-700">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="font-semibold text-sm">Transfert instantané et gratuit</span>
+                          </div>
+                          <p className="text-sm text-green-600 mt-1">
+                            Transférez sans frais vers n'importe quel utilisateur de InvestPro
+                          </p>
+                        </div>
+                      )}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="flex-1 overflow-y-auto space-y-4 px-1 py-3">
+                    <div>
+                      <Label htmlFor="transfer-phone" className="text-sm font-medium text-gray-700 block mb-2">
+                        Numéro de téléphone du destinataire *
+                      </Label>
+                      <div className="relative">
+                        <MuiTelInput
+                          id="transfer-phone"
+                          value={transferPhone}
+                          onChange={phone => {
+                            setTransferPhone(phone);
+                            setVerifiedUser(null);
+                            if (phoneVerificationTimeout) {
+                              clearTimeout(phoneVerificationTimeout);
+                            }
+                            if (isValidPhoneNumber(phone)) {
+                              const timeoutId = setTimeout(() => {
+                                verifyUserByPhone(phone);
+                              }, 800);
+                              setPhoneVerificationTimeout(timeoutId);
+                            }
+                          }}
+                          defaultCountry="BF"
+                          fullWidth
+                          required
+                          disabled={isSubmittingTransfer || user?.role === 'agent'}
+                        />
+                        {isVerifyingUser && (
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Affichage de l'utilisateur vérifié */}
+                      {verifiedUser && (
+                        <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-center gap-2 text-green-700">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="text-sm font-medium">Destinataire trouvé</span>
+                          </div>
+                          <p className="text-sm text-green-600 mt-1">
+                            {verifiedUser.name} • {verifiedUser.phone}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {transferPhone && !verifiedUser && !isVerifyingUser && transferPhone.length >= 12 && (
+                        <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                          <div className="flex items-center gap-2 text-red-700">
+                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                            <span className="text-sm font-medium">Utilisateur non trouvé</span>
+                          </div>
+                          <p className="text-sm text-red-600 mt-1">
+                            Aucun compte avec ce numéro. Vérifiez que le numéro est correct et existe sur la plateforme.
+                          </p>
                         </div>
                       )}
                     </div>
-                    {depositAmount && Number(depositAmount) < 1000 && (
-                      <p className="text-sm text-red-500 mt-1">Le montant minimum est de 1000 FCFA</p>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="deposit-proof" className="text-sm font-medium text-gray-700 block mb-2">
-                      Preuve de paiement *
-                    </Label>
-                    <Textarea
-                      id="deposit-proof"
-                      placeholder="Saisissez l'ID de transaction ou une description du paiement effectué"
-                      value={depositProof}
-                      onChange={e => setDepositProof(e.target.value)}
-                      className="text-sm min-h-[60px] resize-none border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                      disabled={isSubmittingDeposit}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Exemple : "Transaction réussie ID: PP250803.1806.56541381"
-                    </p>
-                  </div>
-                  
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-2">
-                    <div className="flex items-start gap-2">
-                      <div className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5">⚠️</div>
-                      <div className="text-sm text-amber-800">
-                        <div className="font-medium mb-1">Instructions :</div>
-                        <ul className="space-y-0.5 text-xs">
-                          <li>1. Composez le code USSD ci-dessus</li>
-                          <li>2. Effectuez le paiement vers l'agent</li>
-                          <li>3. Saisissez la preuve dans le champ</li>
-                        </ul>
+                    
+                    <div>
+                      <Label htmlFor="transfer-amount" className="text-sm font-medium text-gray-700 block mb-2">
+                        Montant (FCFA) *
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="transfer-amount"
+                          type="number"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          min="1000"
+                          step="500"
+                          placeholder="Montant à transférer (minimum 1000 FCFA)"
+                          value={transferAmount}
+                          onChange={e => {
+                            const value = e.target.value;
+                            // Ne permettre que les chiffres positifs
+                            if (/^\d*$/.test(value)) {
+                              setTransferAmount(value);
+                            }
+                          }}
+                          onKeyDown={e => {
+                            // Bloquer les caractères non numériques et les signes
+                            if (["e", "E", "+", "-", ".", ","].includes(e.key)) {
+                              e.preventDefault();
+                            }
+                          }}
+                          className="text-sm border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 h-10"
+                          disabled={isSubmittingTransfer || user?.role === 'agent'}
+                        />
+                        {transferAmount && Number(transferAmount) >= 500 && Number(transferAmount) <= (user?.balance || 0) && (
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-600">
+                            ✓
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="flex-shrink-0 pt-3 border-t bg-white">
-                {!selectedAgent && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-2 mb-3">
-                    <div className="flex items-center gap-2 text-red-700">
-                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                      <span className="font-medium text-sm">Aucun agent disponible</span>
-                    </div>
-                    <p className="text-xs text-red-600 mt-1">
-                      {user?.role === 'agent' ? 
-                        "Aucun autre agent n'est disponible pour traiter votre demande." :
-                        "Aucun agent n'est disponible actuellement. Veuillez réessayer plus tard."
-                      }
-                    </p>
-                  </div>
-                )}
-                <div className="flex gap-3">
-                  <Button
-                    variant="outline"
-                    className="flex-1 h-9 text-sm border-gray-300 hover:bg-gray-50"
-                    disabled={isSubmittingDeposit}
-                    onClick={() => {
-                      if (!isSubmittingDeposit) {
-                        setIsDepositDialogOpen(false);
-                        setDepositMethod("");
-                        setDepositProof("");
-                        setDepositAmount("");
-                      }
-                    }}
-                  >
-                    Annuler
-                  </Button>
-                  <Button 
-                    className="flex-1 h-9 text-sm bg-blue-600 hover:bg-blue-700 text-white" 
-                    onClick={handleDeposit} 
-                    disabled={paymentMethods.length === 0 || isSubmittingDeposit || !selectedAgent || !depositMethod || !depositProof || !depositAmount || Number(depositAmount) < 1000}
-                  >
-                    {isSubmittingDeposit ? (
-                      <div className="flex items-center gap-2">
-                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-                        Envoi...
-                      </div>
-                    ) : (
-                      'Confirmer'
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          {/* Transfert inter-comptes */}
-          <Dialog open={isTransferDialogOpen} onOpenChange={(open) => {
-            if (!isSubmittingTransfer) {
-              setIsTransferDialogOpen(open);
-              if (!open) {
-                setTransferPhone("");
-                setTransferAmount("");
-                setTransferDescription("");
-                setVerifiedUser(null);
-                if (phoneVerificationTimeout) {
-                  clearTimeout(phoneVerificationTimeout);
-                  setPhoneVerificationTimeout(null);
-                }
-              }
-            }
-          }}>
-            <DialogTrigger asChild>
-              <Card className="shadow-card hover:shadow-lg transition-all cursor-pointer bg-gradient-to-br from-indigo-50 to-purple-100 border-indigo-200">
-                <CardContent className="p-3 sm:p-4 text-center">
-                  <div className="mx-auto mb-2 p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full w-fit shadow-md">
-                    <Send className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                  </div>
-                  <h3 className="text-xs sm:text-sm font-semibold mb-1 text-indigo-700">Transférer</h3>
-                  <p className="text-xs text-indigo-600 hidden sm:block">Sans frais</p>
-                </CardContent>
-              </Card>
-            </DialogTrigger>
-            <DialogContent className="max-w-[95vw] sm:max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
-              <DialogHeader className="flex-shrink-0 pb-3">
-                <DialogTitle className="text-lg font-semibold text-gray-800">Transfert inter-comptes</DialogTitle>
-                <DialogDescription className="text-sm leading-relaxed">
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                    <div className="flex items-center gap-2 text-green-700">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="font-semibold text-sm">Transfert instantané et gratuit</span>
-                    </div>
-                    <p className="text-sm text-green-600 mt-1">
-                      Transférez sans frais vers n'importe quel utilisateur de InvestPro
-                    </p>
-                  </div>
-                </DialogDescription>
-              </DialogHeader>
-              <div className="flex-1 overflow-y-auto space-y-4 px-1 py-3">
-                <div>
-                  <Label htmlFor="transfer-phone" className="text-sm font-medium text-gray-700 block mb-2">
-                    Numéro de téléphone du destinataire *
-                  </Label>
-                  <div className="relative">
-                    <MuiTelInput
-                      id="transfer-phone"
-                      value={transferPhone}
-                      onChange={phone => {
-                        setTransferPhone(phone);
-                        setVerifiedUser(null);
-                        if (phoneVerificationTimeout) {
-                          clearTimeout(phoneVerificationTimeout);
-                        }
-                        if (isValidPhoneNumber(phone)) {
-                          const timeoutId = setTimeout(() => {
-                            verifyUserByPhone(phone);
-                          }, 800);
-                          setPhoneVerificationTimeout(timeoutId);
-                        }
-                      }}
-                      defaultCountry="BF"
-                      fullWidth
-                      required
-                      disabled={isSubmittingTransfer}
-                    />
-                    {isVerifyingUser && (
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Affichage de l'utilisateur vérifié */}
-                  {verifiedUser && (
-                    <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <div className="flex items-center gap-2 text-green-700">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="text-sm font-medium">Destinataire trouvé</span>
-                      </div>
-                      <p className="text-sm text-green-600 mt-1">
-                        {verifiedUser.name} • {verifiedUser.phone}
+                      <p className="text-sm text-gray-500 mt-1">
+                        Solde disponible: <span className="font-medium">{formatCurrency(user?.balance || 0)}</span> • Minimum: 1000 FCFA
                       </p>
+                      {transferAmount && Number(transferAmount) < 500 && (
+                        <p className="text-sm text-red-500 mt-1">Le montant minimum est de 1000 FCFA</p>
+                      )}
+                      {transferAmount && Number(transferAmount) > (user?.balance || 0) && (
+                        <p className="text-sm text-red-500 mt-1">Montant supérieur à votre solde disponible</p>
+                      )}
                     </div>
-                  )}
-                  
-                  {transferPhone && !verifiedUser && !isVerifyingUser && transferPhone.length >= 12 && (
-                    <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <div className="flex items-center gap-2 text-red-700">
-                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                        <span className="text-sm font-medium">Utilisateur non trouvé</span>
-                      </div>
-                      <p className="text-sm text-red-600 mt-1">
-                        Aucun compte avec ce numéro. Vérifiez que le numéro est correct et existe sur la plateforme.
-                      </p>
+                    
+                    <div>
+                      <Label htmlFor="transfer-description" className="text-sm font-medium text-gray-700 block mb-2">
+                        Description (optionnelle)
+                      </Label>
+                      <Input
+                        id="transfer-description"
+                        placeholder="Motif du transfert (ex: Remboursement, Cadeau, etc.)"
+                        value={transferDescription}
+                        onChange={e => setTransferDescription(e.target.value)}
+                        className="text-sm border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 h-10"
+                        disabled={isSubmittingTransfer || user?.role === 'agent'}
+                      />
                     </div>
-                  )}
-                </div>
-                
-                <div>
-                  <Label htmlFor="transfer-amount" className="text-sm font-medium text-gray-700 block mb-2">
-                    Montant (FCFA) *
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="transfer-amount"
-                      type="number"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      min="1000"
-                      step="500"
-                      placeholder="Montant à transférer (minimum 1000 FCFA)"
-                      value={transferAmount}
-                      onChange={e => {
-                        const value = e.target.value;
-                        // Ne permettre que les chiffres positifs
-                        if (/^\d*$/.test(value)) {
-                          setTransferAmount(value);
-                        }
-                      }}
-                      onKeyDown={e => {
-                        // Bloquer les caractères non numériques et les signes
-                        if (["e", "E", "+", "-", ".", ","].includes(e.key)) {
-                          e.preventDefault();
-                        }
-                      }}
-                      className="text-sm border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 h-10"
-                      disabled={isSubmittingTransfer}
-                    />
-                    {transferAmount && Number(transferAmount) >= 500 && Number(transferAmount) <= (user?.balance || 0) && (
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-600">
-                        ✓
+                    
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <div className="flex items-start gap-2">
+                        <div className="w-5 h-5 text-blue-600 flex-shrink-0">💡</div>
+                        <div className="text-sm text-blue-800">
+                          <div className="font-medium mb-1">Avantages du transfert :</div>
+                          <ul className="space-y-1 text-xs">
+                            <li>• Transfert immédiat et sécurisé</li>
+                            <li>• Aucun frais de transaction</li>
+                            <li>• Confirmation instantanée</li>
+                          </ul>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Solde disponible: <span className="font-medium">{formatCurrency(user?.balance || 0)}</span> • Minimum: 1000 FCFA
-                  </p>
-                  {transferAmount && Number(transferAmount) < 500 && (
-                    <p className="text-sm text-red-500 mt-1">Le montant minimum est de 1000 FCFA</p>
-                  )}
-                  {transferAmount && Number(transferAmount) > (user?.balance || 0) && (
-                    <p className="text-sm text-red-500 mt-1">Montant supérieur à votre solde disponible</p>
-                  )}
-                </div>
-                
-                <div>
-                  <Label htmlFor="transfer-description" className="text-sm font-medium text-gray-700 block mb-2">
-                    Description (optionnelle)
-                  </Label>
-                  <Input
-                    id="transfer-description"
-                    placeholder="Motif du transfert (ex: Remboursement, Cadeau, etc.)"
-                    value={transferDescription}
-                    onChange={e => setTransferDescription(e.target.value)}
-                    className="text-sm border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 h-10"
-                    disabled={isSubmittingTransfer}
-                  />
-                </div>
-                
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <div className="flex items-start gap-2">
-                    <div className="w-5 h-5 text-blue-600 flex-shrink-0">💡</div>
-                    <div className="text-sm text-blue-800">
-                      <div className="font-medium mb-1">Avantages du transfert :</div>
-                      <ul className="space-y-1 text-xs">
-                        <li>• Transfert immédiat et sécurisé</li>
-                        <li>• Aucun frais de transaction</li>
-                        <li>• Confirmation instantanée</li>
-                      </ul>
                     </div>
                   </div>
-                </div>
-              </div>
-              <div className="flex-shrink-0 p-4 border-t bg-gray-50">
-                <div className="flex gap-3">
-                  <Button
-                    variant="outline"
-                    className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-100 h-11"
-                    disabled={isSubmittingTransfer}
-                    onClick={() => {
-                      if (!isSubmittingTransfer) {
-                        setIsTransferDialogOpen(false);
-                        setTransferPhone("");
-                        setTransferAmount("");
-                        setTransferDescription("");
-                        setVerifiedUser(null);
-                      }
-                    }}
-                  >
-                    Annuler
-                  </Button>
-                  <Button 
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 h-11 font-medium" 
-                    onClick={handleTransfer} 
-                    disabled={isSubmittingTransfer || !transferPhone || !transferAmount || !verifiedUser || Number(transferAmount) < 1000}
-                  >
-                    {isSubmittingTransfer ? (
-                      <div className="flex items-center gap-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        <span>Transfert en cours...</span>
-                      </div>
-                    ) : (
-                      `Transférer ${transferAmount ? formatCurrency(Number(transferAmount)) : ''}`
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+                  <div className="flex-shrink-0 p-4 border-t bg-gray-50">
+                    <div className="flex gap-3">
+                      <Button
+                        variant="outline"
+                        className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-100 h-11"
+                        disabled={isSubmittingTransfer}
+                        onClick={() => {
+                          if (!isSubmittingTransfer) {
+                            setIsTransferDialogOpen(false);
+                            setTransferPhone("");
+                            setTransferAmount("");
+                            setTransferDescription("");
+                            setVerifiedUser(null);
+                          }
+                        }}
+                      >
+                        Annuler
+                      </Button>
+                      <Button 
+                        className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 h-11 font-medium" 
+                        onClick={handleTransfer} 
+                        disabled={isSubmittingTransfer || !transferPhone || !transferAmount || !verifiedUser || Number(transferAmount) < 1000 || user?.role === 'agent'}
+                      >
+                        {isSubmittingTransfer ? (
+                          <div className="flex items-center gap-2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            <span>Transfert en cours...</span>
+                          </div>
+                        ) : (
+                          `Transférer ${transferAmount ? formatCurrency(Number(transferAmount)) : ''}`
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
           
           {/* Acheter un lot */}
           <Card className="shadow-card hover:shadow-lg transition-all cursor-pointer bg-gradient-to-br from-green-50 to-emerald-100 border-green-200" onClick={() => navigate('/lots')}>

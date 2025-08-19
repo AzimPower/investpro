@@ -114,7 +114,7 @@ export const notificationService = {
   subscribeToNotifications(userId: number, callback: (notification: AppNotification) => void): (() => void) | null {
     if (typeof window !== 'undefined' && 'WebSocket' in window) {
       try {
-        const wsUrl = `ws://localhost:8080/notifications/${userId}`;
+        const wsUrl = `ws://app-investpro.site/notifications/${userId}`;
         const ws = new WebSocket(wsUrl);
 
         ws.onmessage = (event) => {

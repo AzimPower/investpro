@@ -40,7 +40,7 @@ export async function apiGetAgentApplications(userId?: number) {
 // Centralise tous les appels à l'API PHP backend avec optimisations
 
 //const API_URL = '/backend'; // Adapter si besoin
-const API_URL = 'https://mintcream-cheetah-263111.hostingersite.com/backend'; // Adapter si besoin
+const API_URL = 'https://app-investpro.site/backend'; // Adapter si besoin
 
 // Cache pour éviter les appels redondants
 const cache = new Map<string, { data: any; timestamp: number; ttl: number }>();

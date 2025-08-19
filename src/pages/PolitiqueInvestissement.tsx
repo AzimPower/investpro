@@ -61,7 +61,7 @@ export const PolitiqueInvestissement = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-justify">
+                <p className="text-justify text-xs sm:text-base">
                 Bienvenue sur l’application web d’investissement par lots de la société InvestPro. La présente politique de confidentialité a pour objectif de vous expliquer de manière complète, approfondie, transparente et conforme aux réglementations nationales et internationales en matière de protection des données personnelles, la façon dont nous collectons, utilisons, traitons, conservons, partageons et sécurisons vos données à caractère personnel dans le cadre de votre utilisation de notre plateforme. La confidentialité et la protection des données ne sont pas seulement des obligations légales pour nous, elles sont une priorité fondamentale au cœur de notre éthique d’entreprise.
 
                 Cette politique s’applique à toutes les données personnelles collectées sur notre application web, accessibles depuis tout appareil connecté (ordinateur, smartphone, tablette) et via tous les services fournis par InvestPro , que vous soyez un simple visiteur, un utilisateur enregistré (investisseur), un agent en charge de la validation des transactions, ou un administrateur disposant de privilèges étendus.

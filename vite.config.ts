@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     proxy: {
       '/backend': {
-        target: 'https://mintcream-cheetah-263111.hostingersite.com',
+        target: 'https://app-investpro.site',
         changeOrigin: true,
         secure: true,
         timeout: 10000, // 10 secondes timeout

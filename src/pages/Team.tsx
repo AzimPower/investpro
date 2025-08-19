@@ -214,7 +214,7 @@ export const Team = () => {
       if (navigator.share && navigator.canShare) {
         const shareData = {
           title: 'Rejoignez InvestPro',
-          text: 'Investissez et gagnez de l\'argent chaque jour avec InvestPro. Appuyez sur ce lien pour essayer !',
+          text: 'Investissez et gagnez de l\'argent chaque jour avec InvestPro. Appuyez sur ce lien pour essayer !\n\n',
           url: referralLink,
         };
         
