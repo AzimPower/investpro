@@ -106,7 +106,7 @@ export const Withdraw = () => {
     // Vérifier le jour de la semaine (0=dimanche, 1=lundi, 2=mardi, ..., 6=samedi)
     const today = new Date();
     const dayOfWeek = today.getDay();
-    if (dayOfWeek !== 2 && dayOfWeek !== 4) {
+    if (dayOfWeek !== 2 && dayOfWeek !== 6) {
       toast({
         title: "Retrait non disponible",
         description: "Les retraits sont uniquement disponibles les mardi et samedi.",
