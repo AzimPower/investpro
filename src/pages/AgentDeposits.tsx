@@ -167,8 +167,10 @@ export default function AgentDeposits() {
         throw new Error('Cette transaction a déjà été traitée par un autre agent');
       }
 
-      // Récupérer l'utilisateur
-      const user = await apiGetUserById(Number(freshTransaction.userId));
+      // Récupérer l'utilisateur sans cache pour garantir la valeur la plus récente
+      const API_URL = 'https://app-investpro.site/backend';
+      const userRes = await fetch(`${API_URL}/users.php?id=${freshTransaction.userId}`);
+      const user = userRes.ok ? await userRes.json() : null;
       if (!user) {
         throw new Error('Utilisateur non trouvé');
       }
@@ -176,14 +178,14 @@ export default function AgentDeposits() {
       // S'assurer que les valeurs sont bien des nombres avec 2 décimales
       const currentBalance = parseFloat(user.balance || '0');
       const amount = parseFloat(String(freshTransaction.amount || '0'));
-      
+
       // Calculer le nouveau solde avec précision
       const calculatedBalance = currentBalance + amount;
-      
+
       if (isNaN(calculatedBalance)) {
         throw new Error('Erreur de calcul du nouveau solde');
       }
-      
+
       const newBalance = calculatedBalance.toFixed(2);
 
       console.log(`💰 Mise à jour transaction ${id} et solde utilisateur ${freshTransaction.userId}`);
@@ -272,13 +274,21 @@ export default function AgentDeposits() {
       // Récupérer la transaction fraîche depuis la base de données pour éviter les conflits de concurrence
       const allTransactions = await apiGetTransactions();
       const freshTransaction = allTransactions?.find(t => t.id === id);
-      
+
       if (!freshTransaction) {
         throw new Error('Transaction non trouvée dans la base de données');
       }
 
       if (freshTransaction.status !== 'pending') {
         throw new Error('Cette transaction a déjà été traitée par un autre agent');
+      }
+
+      // Récupérer l'utilisateur sans cache pour garantir la valeur la plus récente
+      const API_URL = 'https://app-investpro.site/backend';
+      const userRes = await fetch(`${API_URL}/users.php?id=${freshTransaction.userId}`);
+      const user = userRes.ok ? await userRes.json() : null;
+      if (!user) {
+        throw new Error('Utilisateur non trouvé');
       }
 
       console.log(`🚫 Mise à jour transaction ${id} comme rejetée`);
@@ -291,11 +301,11 @@ export default function AgentDeposits() {
         processedBy: agentNumber, 
         reason 
       });
-      
+
       setSelectedDeposit(null);
       setRejectReason('');
       await loadDeposits();
-      
+
       console.log(`📧 Envoi notification pour dépôt ${id} rejeté`);
 
       // Notification à l'utilisateur que son dépôt a été rejeté - UNE SEULE FOIS
@@ -310,7 +320,7 @@ export default function AgentDeposits() {
         console.error('❌ Erreur lors de l\'envoi de la notification:', notificationError);
         // Ne pas faire échouer toute l'opération à cause d'une erreur de notification
       }
-      
+
       toast({
         title: "Dépôt rejeté",
         description: reason ? `Le dépôt a été rejeté. Motif: ${reason}` : "Le dépôt a été rejeté.",

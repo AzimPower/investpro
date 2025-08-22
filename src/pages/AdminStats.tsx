@@ -289,7 +289,8 @@ export default function AdminStats() {
   };
 
   const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(amount);
+  // Affiche toujours deux décimales, séparateur virgule, sans arrondir
+  return amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' F';
   };
 
   const exportToCSV = () => {

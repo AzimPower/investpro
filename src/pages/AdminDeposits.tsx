@@ -177,6 +177,7 @@ export default function AdminDeposits() {
         return;
       }
 
+
       await apiUpdateTransaction({
         id: transactionId,
         status,
@@ -186,24 +187,33 @@ export default function AdminDeposits() {
       });
 
       if (status === 'approved') {
-        // Update user balance
-        const user = await apiGetUserById(transaction.userId);
-        if (user) {
+        // ...existing code for approved...
+        const API_URL = 'https://app-investpro.site/backend';
+        const userFreshRaw = await fetch(`${API_URL}/users.php?id=${transaction.userId}`);
+        const userFresh = userFreshRaw.ok ? await userFreshRaw.json() : null;
+        if (userFresh) {
           await apiUpdateUser({
-            ...user,
-            balance: Number(user.balance) + Number(transaction.amount)
+            ...userFresh,
+            balance: Number(userFresh.balance) + Number(transaction.amount)
           });
-
-          // If lot purchase, add user lot
           if (transaction.lotId) {
             await apiCreateUserLot({
-              userId: user.id,
+              userId: userFresh.id,
               lotId: transaction.lotId,
               purchasedAt: new Date().toISOString(),
               active: true
             });
           }
         }
+      }
+
+      if (status === 'rejected') {
+        // Récupère l'utilisateur sans cache pour garantir la valeur la plus récente
+        const API_URL = 'https://app-investpro.site/backend';
+        const userFreshRaw = await fetch(`${API_URL}/users.php?id=${transaction.userId}`);
+        const userFresh = userFreshRaw.ok ? await userFreshRaw.json() : null;
+        // Ici, vous pouvez effectuer une opération sur le solde si nécessaire lors du rejet
+        // Exemple : ne rien faire ou loguer le solde actuel
       }
 
       // Notifier l'utilisateur du résultat du dépôt

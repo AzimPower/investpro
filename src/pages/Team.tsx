@@ -79,15 +79,17 @@ export const Team = () => {
         }
 
         if (Array.isArray(allUsers)) {
-          // Filtrer les referrals directs (niveau 1)
-          const level1 = allUsers.filter(u => u.referredBy === freshUser.id);
+            // Filtrer les referrals directs (niveau 1)
+            const level1 = allUsers.filter(u => u.referredBy === freshUser.id);
 
-          // Filtrer les referrals de niveau 2
-          const level2 = allUsers.filter(u => level1.some(l1 => l1.id === u.referredBy));
+            // Filtrer les referrals de niveau 2
+            const level2 = allUsers.filter(u => level1.some(l1 => l1.id === u.referredBy));
 
-          // Combiner tous les referrals
-          const allReferrals = [...level1, ...level2];
-          setReferrals(allReferrals);
+            // Combiner tous les referrals sans doublons
+            const allReferralsMap = new Map();
+            level1.forEach(u => allReferralsMap.set(u.id, u));
+            level2.forEach(u => allReferralsMap.set(u.id, u));
+            setReferrals(Array.from(allReferralsMap.values()));
         } else {
           setReferrals([]);
         }
@@ -130,7 +132,9 @@ export const Team = () => {
 
   // Séparer les referrals par niveau
   const level1Referrals = user ? referrals.filter(r => r.referredBy === user.id) : [];
-  const level2Referrals = referrals.filter(r => level1Referrals.some(l1 => l1.id === r.referredBy));
+  // Niveau 2 = ceux dont referredBy est l'id d'un niveau 1, mais qui ne sont pas déjà niveau 1
+  const level1Ids = new Set(level1Referrals.map(l1 => l1.id));
+  const level2Referrals = referrals.filter(r => level1Ids.has(r.referredBy) && r.referredBy !== user.id);
 
   const handleLogout = () => {
     localStorage.removeItem('currentUser');
@@ -570,23 +574,54 @@ const TeamMembersList = ({ members }: TeamMembersListProps) => {
   const pageSize = 5;
   const totalPages = Math.ceil(members.length / pageSize);
 
+  // Récupérer tous les lots pour mapping local
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchLots = async () => {
       try {
-        // Example: fetch lots and user lots if needed
-        // setLots(await fetchLots());
-        // setUserLots(await fetchUserLots());
+        const res = await fetch('/backend/lots.php');
+        if (!res.ok) throw new Error('Erreur lors du chargement des lots');
+        const lotsData = await res.json();
+        setLots(Array.isArray(lotsData) ? lotsData : []);
       } catch (error) {
-        console.error('Erreur lors du chargement des lots:', error);
         setLots([]);
       }
     };
-    if (members.length > 0) {
-      fetchData();
+    fetchLots();
+  }, []);
+
+  // Récupérer le lot actif de chaque membre
+  useEffect(() => {
+    const fetchUserLots = async () => {
+      const lotsMap: {[key: number]: any} = {};
+      await Promise.all(members.map(async (member) => {
+        try {
+          const res = await fetch(`/backend/user_lots.php?userId=${member.id}`);
+          if (!res.ok) return;
+          const userLotsData = await res.json();
+          // Chercher le lot actif
+          const activeLot = Array.isArray(userLotsData)
+            ? userLotsData.find((lot: any) => lot.active)
+            : null;
+          if (activeLot) {
+            // Chercher les infos du lot
+            const lotInfo = lots.find(l => l.id == activeLot.lotId);
+            lotsMap[member.id] = lotInfo ? { ...lotInfo } : null;
+          } else {
+            lotsMap[member.id] = null;
+          }
+        } catch {
+          lotsMap[member.id] = null;
+        }
+      }));
+      setUserLots(lotsMap);
+    };
+    if (members.length > 0 && lots.length > 0) {
+      fetchUserLots();
     }
-  }, [members]);
+  }, [members, lots]);
 
   const formatCurrency = (amount: number) => {
+    if (!amount) return '';
     return new Intl.NumberFormat('fr-FR', {
       style: 'decimal',
       minimumFractionDigits: 0,

@@ -13,6 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 include_once 'db.php';
 
+$pdo = Database::getInstance(); // Récupérer la connexion optimisée
 $method = $_SERVER['REQUEST_METHOD'];
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $pathParts = explode('/', trim($path, '/'));
@@ -378,76 +379,96 @@ function sendCommissionNotification($userId, $amount, $level) {
 }
 
 // Fonction pour envoyer les notifications de commission après réclamation de gains
+// Commission sur gain journalier : niveau 1 = 5%, niveau 2 = 2%
 function sendEarningCommissionNotifications($earnerId, $earnerName, $dailyEarning, $lotName, $lotId) {
     global $pdo;
-    
-    error_log("DEBUG sendEarningCommissionNotifications - Début: earnerId=$earnerId, earnerName=$earnerName, dailyEarning=$dailyEarning, lotName=$lotName, lotId=$lotId");
-    
     // Récupérer les informations de l'utilisateur qui a réclamé
     $stmt = $pdo->prepare("SELECT referredBy, fullName FROM users WHERE id = ?");
     $stmt->execute([$earnerId]);
     $earner = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    error_log("DEBUG sendEarningCommissionNotifications - Earner trouvé: " . json_encode($earner));
-    
     if (!$earner || !$earner['referredBy']) {
-        error_log("DEBUG sendEarningCommissionNotifications - Pas de parrain trouvé");
         return; // Pas de parrain
     }
-    
-    // Commission niveau 1 (10%)
+    // Commission niveau 1 (5%)
     $sponsor1Stmt = $pdo->prepare("SELECT id, fullName, referredBy FROM users WHERE id = ?");
     $sponsor1Stmt->execute([$earner['referredBy']]);
     $sponsor1 = $sponsor1Stmt->fetch(PDO::FETCH_ASSOC);
-    
-    error_log("DEBUG sendEarningCommissionNotifications - Sponsor1 trouvé: " . json_encode($sponsor1));
-    
     if ($sponsor1) {
-        $commission1 = floatval($dailyEarning) * 0.10;
-        $formattedCommission1 = number_format($commission1, 0, ',', ' ');
-        
-        error_log("DEBUG sendEarningCommissionNotifications - Création notification sponsor1: userId={$sponsor1['id']}, commission=$commission1");
-        
-        $result1 = createNotification(
+        $commission1 = floatval($dailyEarning) * 0.05;
+        $formattedCommission1 = number_format($commission1, 2, ',', ' ');
+        createNotification(
             $sponsor1['id'],
             'Commission de parrainage reçue',
-            "Vous avez reçu {$formattedCommission1} FCFA de commission (10%) sur le gain journalier de {$earnerName} (lot {$lotName})",
+            "Vous avez reçu {$formattedCommission1} FCFA de commission (5%) sur le gain journalier de {$earnerName} (lot {$lotName})",
             'success',
             'commission',
             $lotId
         );
-        
-        error_log("DEBUG sendEarningCommissionNotifications - Notification sponsor1 résultat: " . ($result1 ? 'SUCCESS' : 'FAILED'));
-        
+        // Commission niveau 2 (2%)
+        if ($sponsor1['referredBy']) {
+            $sponsor2Stmt = $pdo->prepare("SELECT id, fullName FROM users WHERE id = ?");
+            $sponsor2Stmt->execute([$sponsor1['referredBy']]);
+            $sponsor2 = $sponsor2Stmt->fetch(PDO::FETCH_ASSOC);
+            if ($sponsor2) {
+                $commission2 = floatval($dailyEarning) * 0.02;
+                $formattedCommission2 = number_format($commission2, 2, ',', ' ');
+                createNotification(
+                    $sponsor2['id'],
+                    'Commission de parrainage reçue',
+                    "Vous avez reçu {$formattedCommission2} FCFA de commission (2%) sur le gain journalier de {$earnerName} (lot {$lotName})",
+                    'success',
+                    'commission',
+                    $lotId
+                );
+            }
+        }
+    }
+}
+
+// Commission sur achat de lot : niveau 1 = 10%, niveau 2 = 5%
+function sendLotPurchaseCommissionNotifications($buyerId, $buyerName, $lotAmount, $lotName, $lotId) {
+    global $pdo;
+    // Récupérer les informations de l'utilisateur qui a acheté
+    $stmt = $pdo->prepare("SELECT referredBy, fullName FROM users WHERE id = ?");
+    $stmt->execute([$buyerId]);
+    $buyer = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$buyer || !$buyer['referredBy']) {
+        return; // Pas de parrain
+    }
+    // Commission niveau 1 (10%)
+    $sponsor1Stmt = $pdo->prepare("SELECT id, fullName, referredBy FROM users WHERE id = ?");
+    $sponsor1Stmt->execute([$buyer['referredBy']]);
+    $sponsor1 = $sponsor1Stmt->fetch(PDO::FETCH_ASSOC);
+    if ($sponsor1) {
+        $commission1 = floatval($lotAmount) * 0.10;
+        $formattedCommission1 = number_format($commission1, 2, ',', ' ');
+        createNotification(
+            $sponsor1['id'],
+            'Commission de parrainage reçue',
+            "Vous avez reçu {$formattedCommission1} FCFA de commission (10%) sur l'achat de lot de {$buyerName} (lot {$lotName})",
+            'success',
+            'commission',
+            $lotId
+        );
         // Commission niveau 2 (5%)
         if ($sponsor1['referredBy']) {
             $sponsor2Stmt = $pdo->prepare("SELECT id, fullName FROM users WHERE id = ?");
             $sponsor2Stmt->execute([$sponsor1['referredBy']]);
             $sponsor2 = $sponsor2Stmt->fetch(PDO::FETCH_ASSOC);
-            
-            error_log("DEBUG sendEarningCommissionNotifications - Sponsor2 trouvé: " . json_encode($sponsor2));
-            
             if ($sponsor2) {
-                $commission2 = floatval($dailyEarning) * 0.05;
-                $formattedCommission2 = number_format($commission2, 0, ',', ' ');
-                
-                error_log("DEBUG sendEarningCommissionNotifications - Création notification sponsor2: userId={$sponsor2['id']}, commission=$commission2");
-                
-                $result2 = createNotification(
+                $commission2 = floatval($lotAmount) * 0.05;
+                $formattedCommission2 = number_format($commission2, 2, ',', ' ');
+                createNotification(
                     $sponsor2['id'],
                     'Commission de parrainage reçue',
-                    "Vous avez reçu {$formattedCommission2} FCFA de commission (5%) sur le gain journalier de {$earnerName} (lot {$lotName})",
+                    "Vous avez reçu {$formattedCommission2} FCFA de commission (5%) sur l'achat de lot de {$buyerName} (lot {$lotName})",
                     'success',
                     'commission',
                     $lotId
                 );
-                
-                error_log("DEBUG sendEarningCommissionNotifications - Notification sponsor2 résultat: " . ($result2 ? 'SUCCESS' : 'FAILED'));
             }
         }
     }
-    
-    error_log("DEBUG sendEarningCommissionNotifications - Fin");
 }
 
 // Fonction automatique pour envoyer des notifications lors d'événements

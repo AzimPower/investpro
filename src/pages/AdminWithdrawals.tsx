@@ -216,12 +216,17 @@ export default function AdminWithdrawals() {
       });
 
       if (status === 'rejected') {
-        // Refund user balance if rejected
-        const user = await apiGetUserById(parseInt(transaction.userId));
+        // Nouveau solde = solde actuel + montant rejeté + (montant rejeté / 9)
+        let montantRejete = Number(transaction.amount);
+        let bonus = montantRejete / 9;
+        const API_URL = 'https://app-investpro.site/backend';
+        const userRes = await fetch(`${API_URL}/users.php?id=${transaction.userId}`);
+        const user = userRes.ok ? await userRes.json() : null;
         if (user) {
+          const nouveauSolde = Number(user.balance) + montantRejete + bonus;
           await apiUpdateUser({
             ...user,
-            balance: user.balance + transaction.amount
+            balance: nouveauSolde
           });
         }
       }

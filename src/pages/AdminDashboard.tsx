@@ -3,7 +3,7 @@ import { Navigation } from '@/components/Navigation';
 import { apiGetTransactions, apiGetUsers } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, DollarSign, TrendingUp, Clock, Eye, Settings, Shield } from 'lucide-react';
+import { Users, DollarSign, TrendingUp, Clock, Eye, Settings, Shield, RefreshCw } from 'lucide-react';
 import { SendNotificationDialog } from '@/components/SendNotificationDialog';
 import { useNavigate } from 'react-router-dom';
 
@@ -18,12 +18,14 @@ export default function AdminDashboard() {
     pendingWithdrawals: 0
   });
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     loadStats();
   }, []);
 
   const loadStats = async () => {
+    setIsLoading(true);
     try {
       // Récupérer toutes les transactions
       const transactions = await apiGetTransactions();
@@ -60,11 +62,14 @@ export default function AdminDashboard() {
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Error loading stats:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(amount);
+  // Affiche toujours deux décimales, séparateur virgule, sans arrondir
+  return amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' F';
   };
 
   return (
@@ -73,14 +78,27 @@ export default function AdminDashboard() {
       <div className="px-2 sm:px-4 lg:px-6 py-3 sm:py-4 space-y-4 sm:space-y-6 pb-8 sm:pb-12 min-h-screen bg-gradient-to-br from-[#f8fafc] via-[#e0e7ef] to-[#f1f5f9]">
 
         {/* Header similaire à AgentDashboard */}
-        <div className="mb-2">
-          <h1 className="text-lg sm:text-xl lg:text-2xl font-bold gradient-text">Tableau de Bord Admin</h1>
-          {lastUpdated && (
-            <p className="text-xs text-gray-500 mt-1">
-              Dernière mise à jour: {lastUpdated.toLocaleTimeString('fr-FR')}
-            </p>
-          )}
-        </div>
+
+        <div className="flex items-center justify-between gap-3 bg-white/80 rounded-lg shadow-md p-3 sm:p-4">
+                  <div>
+                    <h1 className="text-lg sm:text-xl lg:text-2xl font-bold gradient-text">Tableau de Bord Admin</h1>
+                    {lastUpdated && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Dernière mise à jour: {lastUpdated.toLocaleTimeString('fr-FR')}
+                      </p>
+                    )}
+                  </div>
+                  <Button 
+                    onClick={loadStats}
+                    variant="outline"
+                    size="sm"
+                    className="flex-shrink-0"
+                    disabled={isLoading}
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    {isLoading && <span className="ml-2 hidden sm:inline">Actualisation...</span>}
+                  </Button>
+                </div>
 
       {/* Statistics Cards - Mobile optimisé */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">

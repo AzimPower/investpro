@@ -3,8 +3,19 @@ ini_set('display_errors', 1);
 error_reporting(E_ALL);
 // backend/lots.php
 header('Content-Type: application/json');
+// Ajout des headers CORS
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+
+// Répondre à la requête OPTIONS (preflight)
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
 require_once 'db.php';
 
+$pdo = Database::getInstance(); // Récupérer la connexion optimisée
 // Fonction simple pour créer une notification
 function createNotificationLocal($pdo, $userId, $title, $message, $type, $category = 'general', $relatedId = null) {
     try {

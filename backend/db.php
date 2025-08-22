@@ -1,33 +1,33 @@
 <?php
-// Configuration pour l'environnement de production Hostinger
-// Remplacez ces valeurs par vos informations de base de données Hostinger
+// db.php - Connexion optimisée à la base de données
 
-$host = 'srv1850.hstgr.io'; // ou l'adresse fournie par Hostinger
-$db   = 'u538245909_invest_pro'; // Nom de votre base de données sur Hostinger
-$user = 'u538245909_invest_pro'; // Nom d'utilisateur fourni par Hostinger
-$pass = '@Le08novembre'; // Mot de passe fourni par Hostinger
-$charset = 'utf8mb4';
+class Database {
+    private static $instance = null;
+    private $pdo;
 
-$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
-$options = [
-    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    PDO::ATTR_EMULATE_PREPARES   => false,
-];
+    private function __construct() {
+        $host = 'srv1850.hstgr.io'; 
+        $db   = 'u538245909_invest_pro';
+        $user = 'u538245909_invest_pro';
+        $pass = '@Le08novembre';
+        $charset = 'utf8mb4';
 
-try {
-    $pdo = new PDO($dsn, $user, $pass, $options);
-} catch (PDOException $e) {
-    throw new PDOException($e->getMessage(), (int)$e->getCode());
+        $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+        $options = [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
+            // Connexion persistante (évite de rouvrir à chaque appel)
+            PDO::ATTR_PERSISTENT => true
+        ];
+
+        $this->pdo = new PDO($dsn, $user, $pass, $options);
+    }
+
+    public static function getInstance() {
+        if (self::$instance === null) {
+            self::$instance = new Database();
+        }
+        return self::$instance->pdo;
+    }
 }
-
-// Configuration des CORS pour la production
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
-?>

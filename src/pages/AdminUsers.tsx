@@ -248,7 +248,8 @@ export default function AdminUsers() {
   };
 
   const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(amount);
+  // Affiche toujours deux décimales, séparateur virgule, sans arrondir
+  return amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' F';
   };
 
   // Pagination helpers seulement pour les utilisateurs
@@ -265,12 +266,22 @@ export default function AdminUsers() {
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold gradient-text text-center sm:text-left">Utilisateurs</h1>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <Search className="w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Rechercher..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full sm:w-80"
-            />
+                <Input
+                  type="text"
+                  placeholder="Rechercher..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full sm:w-80"
+                  autoComplete="new-search"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  name="no_autofill_search_field"
+                  id="no_autofill_search_field"
+                  inputMode="search"
+                  aria-autocomplete="none"
+                  tabIndex={0}
+                  onFocus={e => { e.target.setAttribute('autocomplete', 'new-search'); }}
+                />
           </div>
         </div>
 
@@ -353,20 +364,34 @@ export default function AdminUsers() {
                           
                           {/* Changement mot de passe */}
                           <div className="space-y-2">
-                            <Input
-                              type="password"
-                              placeholder="Nouveau mot de passe"
-                              value={passwordData.newPassword}
-                              onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                              className="text-sm"
-                            />
-                            <Input
-                              type="password"
-                              placeholder="Confirmer"
-                              value={passwordData.confirmPassword}
-                              onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                              className="text-sm"
-                            />
+                              <Input
+                                type="password"
+                                placeholder="Nouveau mot de passe"
+                                value={passwordData.newPassword}
+                                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                                className="text-sm"
+                                autoComplete="new-password"
+                                name="no_autofill_new_password_field"
+                                inputMode="text"
+                                aria-autocomplete="none"
+                                tabIndex={0}
+                                readOnly
+                                onFocus={e => e.target.removeAttribute('readonly')}
+                              />
+                              <Input
+                                type="password"
+                                placeholder="Confirmer"
+                                value={passwordData.confirmPassword}
+                                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                                className="text-sm"
+                                autoComplete="new-password"
+                                name="no_autofill_confirm_password_field"
+                                inputMode="text"
+                                aria-autocomplete="none"
+                                tabIndex={0}
+                                readOnly
+                                onFocus={e => e.target.removeAttribute('readonly')}
+                              />
                             <Button 
                               onClick={() => resetPassword(user.id)}
                               variant="outline"
@@ -381,18 +406,25 @@ export default function AdminUsers() {
                           
                           {/* Modification solde */}
                           <div className="space-y-2">
-                            <div className="flex space-x-2">
-                              <Input
-                                placeholder="Nouveau solde"
-                                value={balanceUpdate}
-                                onChange={(e) => setBalanceUpdate(e.target.value)}
-                                type="number"
-                                className="text-sm"
-                              />
-                              <Button onClick={updateUserBalance} size="sm" disabled={actionLoading}>
-                                <DollarSign className="w-3 h-3" />
-                              </Button>
-                            </div>
+                              <div className="flex space-x-2">
+                                <Input
+                                  placeholder="Nouveau solde"
+                                  value={balanceUpdate}
+                                  onChange={(e) => setBalanceUpdate(e.target.value)}
+                                  type="number"
+                                  className="text-sm"
+                                  autoComplete="off"
+                                  name="no_autofill_balance_field"
+                                  inputMode="numeric"
+                                  aria-autocomplete="none"
+                                  tabIndex={0}
+                                  readOnly
+                                  onFocus={e => e.target.removeAttribute('readonly')}
+                                />
+                                <Button onClick={updateUserBalance} size="sm" disabled={actionLoading}>
+                                  <DollarSign className="w-3 h-3" />
+                                </Button>
+                              </div>
                           </div>
                         </div>
                       </DialogContent>
@@ -447,7 +479,7 @@ export default function AdminUsers() {
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
-                          <Dialog>
+                          <Dialog open={selectedUser?.id === user.id} onOpenChange={open => { if (!open) setSelectedUser(null); }}>
                             <DialogTrigger asChild>
                               <Button size="sm" variant="outline" onClick={() => {
                                 setSelectedUser(user);
@@ -499,6 +531,14 @@ export default function AdminUsers() {
                                       placeholder="Nouveau mot de passe"
                                       value={passwordData.newPassword}
                                       onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                                      autoComplete="new-password"
+                                      autoCorrect="off"
+                                      spellCheck={false}
+                                      name="no_autofill_new_password_field"
+                                      inputMode="text"
+                                      aria-autocomplete="none"
+                                      tabIndex={0}
+                                      onFocus={e => { e.target.setAttribute('autocomplete', 'new-password'); }}
                                     />
                                   </div>
                                   <div className="space-y-2">
@@ -509,6 +549,14 @@ export default function AdminUsers() {
                                       placeholder="Confirmer le nouveau mot de passe"
                                       value={passwordData.confirmPassword}
                                       onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                                      autoComplete="new-password"
+                                      autoCorrect="off"
+                                      spellCheck={false}
+                                      name="no_autofill_confirm_password_field"
+                                      inputMode="text"
+                                      aria-autocomplete="none"
+                                      tabIndex={0}
+                                      onFocus={e => { e.target.setAttribute('autocomplete', 'new-password'); }}
                                     />
                                   </div>
                                   <Button 
@@ -524,10 +572,19 @@ export default function AdminUsers() {
                                   <label className="text-sm font-medium">Modifier le solde</label>
                                   <div className="flex space-x-2">
                                     <Input
+                                      type="text"
                                       placeholder="Nouveau solde"
                                       value={balanceUpdate}
                                       onChange={(e) => setBalanceUpdate(e.target.value)}
-                                      type="number"
+                                      autoComplete="off"
+                                      autoCorrect="off"
+                                      spellCheck={false}
+                                      name="no_autofill_balance_field"
+                                      id="no_autofill_balance_field"
+                                      inputMode="numeric"
+                                      aria-autocomplete="none"
+                                      tabIndex={0}
+                                      onFocus={e => { e.target.setAttribute('autocomplete', 'off'); }}
                                     />
                                     <Button onClick={updateUserBalance}>
                                       <DollarSign className="w-4 h-4" />

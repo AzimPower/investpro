@@ -130,17 +130,21 @@ export const Register = () => {
       };
       const referralCode = generateReferralCode();
 
-      // Créer l'utilisateur via l'API PHP avec le numéro complet
+      // Retirer les espaces du numéro avant l'envoi
+      const formattedPhone = fullPhoneNumber.replace(/\s+/g, '');
       const result = await apiRegister({
-  phone: fullPhoneNumber, // Envoyer le numéro international
+        phone: formattedPhone,
         fullName: formData.fullName,
         password: formData.password,
         referralCode,
-        referredBy,
+        referredBy: referredBy ?? null,
         role: 'user',
         balance: 0,
         totalEarned: 0,
         accountStatus: 'active',
+        email: null,
+        agentNumber: null,
+        operator: null
       });
 
       if (!result || !result.success) {

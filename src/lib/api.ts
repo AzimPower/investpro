@@ -163,6 +163,7 @@ export async function apiUpdateUser(user: any) {
     if (user.agentNumber !== undefined) dataToSend.agentNumber = user.agentNumber;
     if (user.accountStatus !== undefined) dataToSend.accountStatus = user.accountStatus;
     if (user.role !== undefined) dataToSend.role = user.role;
+    if (user.operator !== undefined) dataToSend.operator = user.operator;
 
     // Gestion spéciale du solde
     if (user.balance !== undefined) {

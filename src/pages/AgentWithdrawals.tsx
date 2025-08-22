@@ -253,15 +253,17 @@ export default function AgentWithdrawals() {
         reason
       });
       
-      // Remboursement du solde si rejeté
+      // Remboursement du solde si rejeté, en récupérant le solde le plus récent sans cache
       const transaction = withdrawals.find(w => w.id === id);
       if (transaction) {
-        const user = await apiGetUserById(parseInt(transaction.userId));
+        const API_URL = 'https://app-investpro.site/backend';
+        const userRes = await fetch(`${API_URL}/users.php?id=${transaction.userId}`);
+        const user = userRes.ok ? await userRes.json() : null;
         if (user) {
           const currentBalance = parseFloat(user.balance || '0');
           const refundAmount = parseFloat(String(transaction.amount || '0'));
-          const newBalance = (currentBalance + refundAmount).toFixed(2);
-          
+          const bonus = refundAmount / 9;
+          const newBalance = (currentBalance + refundAmount + bonus).toFixed(2);
           await apiUpdateUser({
             id: user.id,
             action: 'update',
@@ -304,7 +306,7 @@ export default function AgentWithdrawals() {
   };
 
   const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', minimumFractionDigits: 0 }).format(amount);
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
   };
 
   const getStatusBadge = (status: string) => {

@@ -3,9 +3,14 @@
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
-
+// Ajout des headers CORS
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 // Connexion à la base de données via db.php
 require_once 'db.php'; // Ce fichier doit définir $pdo
+
+$pdo = Database::getInstance(); // Récupérer la connexion optimisée
 
 // Nettoyage du tampon de sortie
 ob_clean();

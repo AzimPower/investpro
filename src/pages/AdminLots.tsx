@@ -13,6 +13,9 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function AdminLots() {
   const [lots, setLots] = useState<any[]>([]);
+  // Tri des lots par prix croissant
+  // Tri des lots par prix croissant
+  const sortedLots = [...lots].sort((a, b) => a.price - b.price);
   const [editingLot, setEditingLot] = useState<any | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState({
@@ -293,7 +296,7 @@ export default function AdminLots() {
         <CardContent className="p-3 sm:p-6">
           {/* Mobile layout */}
           <div className="block lg:hidden space-y-2">
-            {lots.map((lot) => (
+            {sortedLots.map((lot) => (
               <div key={lot.id} className="bg-gray-50 p-3 rounded-lg border">
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex items-center space-x-2 flex-1">
@@ -351,7 +354,7 @@ export default function AdminLots() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {lots.map((lot) => (
+                {sortedLots.map((lot) => (
                   <TableRow key={lot.id}>
                     <TableCell>
                       <div className="flex items-center space-x-2">

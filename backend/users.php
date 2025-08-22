@@ -1,10 +1,20 @@
+
 <?php
 ini_set('display_errors', 0);
 error_reporting(0);
 // backend/users.php
 header('Content-Type: application/json');
+// Ajout des headers CORS
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
 require_once 'db.php';
 
+$pdo = Database::getInstance(); // Récupérer la connexion optimisée
 $method = $_SERVER['REQUEST_METHOD'];
 
 function hashPassword($password) {

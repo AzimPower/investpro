@@ -445,7 +445,8 @@ export default function AdminAgents() {
   };
 
   const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(amount);
+  // Affiche toujours deux décimales, séparateur virgule, sans arrondir
+  return amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' F';
   };
 
   // Pagination
@@ -778,6 +779,7 @@ export default function AdminAgents() {
                       </TableCell>
                       <TableCell>{getStatusBadge(agent.accountStatus)}</TableCell>
                       <TableCell>{formatAmount(agent.balance)}</TableCell>
+                      {/* Si l'agent est le demandeur de dépôt, afficher 0 F */}
                       <TableCell>{formatAmount(agentStats[agent.id]?.deposit || 0)}</TableCell>
                       <TableCell>{formatAmount(agentStats[agent.id]?.withdrawal || 0)}</TableCell>
                       <TableCell>{formatAmount(agentStats[agent.id]?.commission || 0)}</TableCell>

@@ -3,8 +3,13 @@
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 header('Content-Type: application/json');
+// Ajout des headers CORS
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 require_once 'db.php';
 
+$pdo = Database::getInstance(); // Récupérer la connexion optimisée
 $method = $_SERVER['REQUEST_METHOD'];
 if ($method !== 'GET') {
     http_response_code(405);
@@ -30,10 +35,9 @@ try {
     $results = [];
     foreach ($agents as $agent) {
         $agentId = $agent['id'];
-    // DEBUG: Afficher les transactions trouvées pour chaque type
-    // Dépôts (userId ou agentId)
-    $stmt = $pdo->prepare("SELECT * FROM transactions WHERE (agentId = ? OR userId = ?) AND type = 'deposit' AND (status = 'approved' OR status = 'completed') AND processedAt BETWEEN ? AND ?");
-    $stmt->execute([$agentId, $agentId, $startDate, $endDate]);
+    // Dépôts validés par l'agent uniquement
+    $stmt = $pdo->prepare("SELECT * FROM transactions WHERE agentId = ? AND type = 'deposit' AND (status = 'approved' OR status = 'completed') AND processedAt BETWEEN ? AND ?");
+    $stmt->execute([$agentId, $startDate, $endDate]);
     $depotRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     error_log('AGENT '.$agentId.' DEPOTS: '.json_encode($depotRows));
     $deposit = array_sum(array_column($depotRows, 'amount'));

@@ -7,7 +7,7 @@ import { Navigation } from "@/components/Navigation";
 import { useNavigate } from "react-router-dom";
 import { User, InvestmentLot } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { Wallet, TrendingUp, Gift, Clock, ArrowUpRight, ArrowDownRight, Users, Star, Send, MessageCircle } from "lucide-react";
+import { Wallet, TrendingUp, Gift, Clock, ArrowUpRight, ArrowDownRight, Users, Star, Send, MessageCircle, RefreshCw } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -59,6 +59,9 @@ export const Dashboard = () => {
   const [transferDescription, setTransferDescription] = useState("");
   const [isSubmittingTransfer, setIsSubmittingTransfer] = useState(false);
   const [verifiedUser, setVerifiedUser] = useState<{id: string, name: string, phone: string} | null>(null);
+  // Actualisation
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [isVerifyingUser, setIsVerifyingUser] = useState(false);
   const [phoneVerificationTimeout, setPhoneVerificationTimeout] = useState<NodeJS.Timeout | null>(null);
 
@@ -67,6 +70,19 @@ export const Dashboard = () => {
   const queryClient = useQueryClient();
   const updateUser = useUpdateUser();
   const claimDailyEarning = useClaimDailyEarning();
+
+  // Actualise les données utilisateur à chaque retour/focus sur la page
+  useEffect(() => {
+    const handleFocus = () => {
+      if (currentUserId) {
+        queryClient.invalidateQueries({ queryKey: ['user', currentUserId] });
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [currentUserId, queryClient]);
 
   // Hooks React Query optimisés
   const { data: user, isLoading: userLoading, error: userError } = useUserData(currentUserId);
@@ -576,15 +592,32 @@ export const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navigation userRole={user.role} onLogout={handleLogout} />
-      
+      {/* Header avec bouton Actualisation */}
       <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 lg:py-8 pb-8 sm:pb-12">
-        {/* Welcome Section - Mobile compact */}
-        <div className="mb-4 sm:mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Salut, {user.fullName.split(' ')[0]} !</h1>
+        <div className="flex items-center justify-between gap-3 bg-white/80 rounded-lg shadow-md p-3 sm:p-4 mb-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold gradient-text">Salut, {user.fullName.split(' ')[0]} !</h1>
+            {lastRefresh && (
+              <p className="text-xs text-gray-500 mt-1">Dernière actualisation: {lastRefresh.toLocaleTimeString('fr-FR')}</p>
+            )}
           </div>
-          <p className="text-xs sm:text-sm lg:text-base text-muted-foreground">Aperçu de vos investissements</p>
+          <Button
+            onClick={async () => {
+              setIsRefreshing(true);
+              await queryClient.invalidateQueries();
+              setLastRefresh(new Date());
+              setIsRefreshing(false);
+            }}
+            variant="outline"
+            size="sm"
+            className="flex-shrink-0"
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing && <span className="ml-2 hidden sm:inline">Actualisation...</span>}
+          </Button>
         </div>
+  {/* ...existing code... */}
 
         {/* Stats Cards - Optimisé mobile */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">

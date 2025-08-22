@@ -37,20 +37,31 @@ export const Withdraw = () => {
           return;
         }
         const userData = JSON.parse(currentUserData);
-        
-        // Charger l'utilisateur depuis le backend
-        const userRes = await fetch(`/backend/users.php?id=${userData.id}`);
-        const freshUser = await userRes.json();
+
+        // Appels API en parallèle
+        const [userRes, transactionsRes, settingsRes, userLotsRes, lotsRes] = await Promise.all([
+          fetch(`/backend/users.php?id=${userData.id}`),
+          fetch(`/backend/transactions.php?userId=${userData.id}`),
+          fetch('/backend/settings.php'),
+          fetch(`/backend/user_lots.php?userId=${userData.id}`),
+          fetch('/backend/lots.php'),
+        ]);
+
+        const [freshUser, transactionsData, settings, userLotsData, lotsData] = await Promise.all([
+          userRes.json(),
+          transactionsRes.json(),
+          settingsRes.json(),
+          userLotsRes.json(),
+          lotsRes.json(),
+        ]);
+
         if (!freshUser || !freshUser.id) {
           localStorage.removeItem('currentUser');
           navigate('/login');
           return;
         }
-        
-        // Calculer les gains journaliers depuis les transactions
-        const transactionsRes = await fetch(`/backend/transactions.php?userId=${freshUser.id}`);
-        const transactionsData = await transactionsRes.json();
-        
+
+        // Calculer les gains journaliers
         let dailyEarnings = 0;
         if (transactionsData && Array.isArray(transactionsData)) {
           const today = new Date().toISOString().split('T')[0];
@@ -58,25 +69,13 @@ export const Withdraw = () => {
             .filter(t => t.type === 'earning' && t.createdAt && t.createdAt.startsWith(today))
             .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
         }
-        
-        // Charger les méthodes de paiement depuis les paramètres
-        const settingsRes = await fetch('/backend/settings.php');
-        const settings = await settingsRes.json();
+
+        setUser({ ...freshUser, dailyEarnings });
+        setUserLots(Array.isArray(userLotsData) ? userLotsData : []);
+        setLots(Array.isArray(lotsData) ? lotsData : []);
         if (settings && settings.paymentMethods) {
           setPaymentMethods(settings.paymentMethods);
         }
-        
-  setUser({ ...freshUser, dailyEarnings });
-
-  // Charger les lots de l'utilisateur
-  const userLotsRes = await fetch(`/backend/user_lots.php?userId=${freshUser.id}`);
-  const userLotsData = await userLotsRes.json();
-  setUserLots(Array.isArray(userLotsData) ? userLotsData : []);
-
-  // Charger tous les lots
-  const lotsRes = await fetch('/backend/lots.php');
-  const lotsData = await lotsRes.json();
-  setLots(Array.isArray(lotsData) ? lotsData : []);
       } catch (error) {
         toast({
           title: "Erreur",
@@ -107,7 +106,7 @@ export const Withdraw = () => {
     // Vérifier le jour de la semaine (0=dimanche, 1=lundi, 2=mardi, ..., 6=samedi)
     const today = new Date();
     const dayOfWeek = today.getDay();
-    if (dayOfWeek !== 2 && dayOfWeek !== 6) {
+    if (dayOfWeek !== 2 && dayOfWeek !== 4) {
       toast({
         title: "Retrait non disponible",
         description: "Les retraits sont uniquement disponibles les mardi et samedi.",
